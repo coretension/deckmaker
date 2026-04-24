@@ -140,14 +140,6 @@ public class CardMakerController {
                             elementTreeView.getSelectionModel().select(getTreeItem());
                             handleDeleteElement(null);
                         });
-                        MenuItem moveForward = new MenuItem("Move Forward");
-                        moveForward.setOnAction(e -> handleMoveForward(null));
-                        MenuItem moveBackward = new MenuItem("Move Backward");
-                        moveBackward.setOnAction(e -> handleMoveBackward(null));
-                        MenuItem bringToFront = new MenuItem("Bring to Front");
-                        bringToFront.setOnAction(e -> handleBringToFront(null));
-                        MenuItem sendToBack = new MenuItem("Send to Back");
-                        sendToBack.setOnAction(e -> handleSendToBack(null));
 
                         MenuItem lockUnlockItem = new MenuItem();
                         if (item instanceof ContainerElement ce) {
@@ -164,8 +156,7 @@ public class CardMakerController {
                         }
                         contextMenu.getItems().addAll(new SeparatorMenuItem(),
                                 copyItem, pasteItem, new SeparatorMenuItem(), 
-                                moveForward, moveBackward, bringToFront, sendToBack,
-                                new SeparatorMenuItem(), deleteItem);
+                                deleteItem);
                         setContextMenu(contextMenu);
                     }
                 }
@@ -251,47 +242,69 @@ public class CardMakerController {
             CardElement selected = getSelectedElement();
             if (selected == null) return;
 
-            if (event.getCode() == KeyCode.UP) {
+            if (event.isControlDown() && event.getCode() == KeyCode.UP) {
                 saveExpandedState(elementTreeView.getRoot());
                 ObservableList<CardElement> parentList = findParentList(selected);
                 if (parentList != null) {
                     int index = parentList.indexOf(selected);
                     if (index > 0) {
-                        parentList.remove(selected);
-                        parentList.add(index - 1, selected);
-                        renderTemplate();
-                        selectElement(selected);
-                        event.consume();
+                        CardElement elementAbove = parentList.get(index - 1);
+                        if (elementAbove instanceof ParentCardElement pe) {
+                            // Move into container at the bottom
+                            parentList.remove(selected);
+                            pe.getChildren().add(selected);
+                        } else {
+                            // Swap with element above
+                            parentList.remove(selected);
+                            parentList.add(index - 1, selected);
+                        }
+                    } else {
+                        // At the top of the list, move out of container if possible
+                        ParentCardElement parentElement = findParentElement(selected);
+                        if (parentElement != null) {
+                            ObservableList<CardElement> grandparentList = findParentList(parentElement);
+                            if (grandparentList != null) {
+                                int parentIndex = grandparentList.indexOf(parentElement);
+                                parentList.remove(selected);
+                                grandparentList.add(parentIndex, selected);
+                            }
+                        }
                     }
+                    renderTemplate();
+                    selectElement(selected);
+                    event.consume();
                 }
-            } else if (event.getCode() == KeyCode.DOWN) {
+            } else if (event.isControlDown() && event.getCode() == KeyCode.DOWN) {
                 saveExpandedState(elementTreeView.getRoot());
                 ObservableList<CardElement> parentList = findParentList(selected);
                 if (parentList != null) {
                     int index = parentList.indexOf(selected);
                     if (index < parentList.size() - 1) {
-                        parentList.remove(selected);
-                        parentList.add(index + 1, selected);
-                        renderTemplate();
-                        selectElement(selected);
-                        event.consume();
+                        CardElement elementBelow = parentList.get(index + 1);
+                        if (elementBelow instanceof ParentCardElement pe) {
+                            // Move into container at the top
+                            parentList.remove(selected);
+                            pe.getChildren().add(0, selected);
+                        } else {
+                            // Swap with element below
+                            parentList.remove(selected);
+                            parentList.add(index + 1, selected);
+                        }
+                    } else {
+                        // At the bottom of the list, move out of container if possible
+                        ParentCardElement parentElement = findParentElement(selected);
+                        if (parentElement != null) {
+                            ObservableList<CardElement> grandparentList = findParentList(parentElement);
+                            if (grandparentList != null) {
+                                int parentIndex = grandparentList.indexOf(parentElement);
+                                parentList.remove(selected);
+                                grandparentList.add(parentIndex + 1, selected);
+                            }
+                        }
                     }
-                }
-            } else if (event.getCode() == KeyCode.LEFT) {
-                saveExpandedState(elementTreeView.getRoot());
-                ParentCardElement parent = findParentElement(selected);
-                if (parent != null) {
-                    ObservableList<CardElement> parentList = parent.getChildren();
-                    parentList.remove(selected);
-                    
-                    ObservableList<CardElement> grandparentList = findParentList(parent);
-                    if (grandparentList != null) {
-                        int parentIndex = grandparentList.indexOf(parent);
-                        grandparentList.add(parentIndex + 1, selected);
-                        renderTemplate();
-                        selectElement(selected);
-                        event.consume();
-                    }
+                    renderTemplate();
+                    selectElement(selected);
+                    event.consume();
                 }
             }
         });
@@ -2114,44 +2127,6 @@ public class CardMakerController {
                 selectElement(selected);
             }
         }
-    }
-
-    @FXML
-    void handleMoveForward(ActionEvent event) {
-        moveSelectedElement((list, el) -> {
-            int index = list.indexOf(el);
-            if (index < list.size() - 1) {
-                list.remove(el);
-                list.add(index + 1, el);
-            }
-        });
-    }
-
-    @FXML
-    void handleMoveBackward(ActionEvent event) {
-        moveSelectedElement((list, el) -> {
-            int index = list.indexOf(el);
-            if (index > 0) {
-                list.remove(el);
-                list.add(index - 1, el);
-            }
-        });
-    }
-
-    @FXML
-    void handleBringToFront(ActionEvent event) {
-        moveSelectedElement((list, el) -> {
-            list.remove(el);
-            list.add(el);
-        });
-    }
-
-    @FXML
-    void handleSendToBack(ActionEvent event) {
-        moveSelectedElement((list, el) -> {
-            list.remove(el);
-            list.add(0, el);
-        });
     }
 
     private ParentCardElement findParentElement(CardElement el) {
