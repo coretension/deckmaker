@@ -1012,30 +1012,34 @@ public class CardMakerController {
         Pane pane = switch (ce.getLayoutType()) {
             case VERTICAL -> {
                 VBox vbox = new VBox();
-                vbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), true));
-                ce.alignmentProperty().addListener((obs, old, newVal) -> vbox.setAlignment(mapAlignmentToPos(newVal, true)));
+                vbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), ce.getVerticalAlignment()));
+                ce.alignmentProperty().addListener((obs, old, newVal) -> vbox.setAlignment(mapAlignmentToPos(newVal, ce.getVerticalAlignment())));
+                ce.verticalAlignmentProperty().addListener((obs, old, newVal) -> vbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), newVal)));
                 vbox.spacingProperty().bind(ce.spacingProperty());
                 yield vbox;
             }
             case HORIZONTAL -> {
                 HBox hbox = new HBox();
-                hbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), false));
-                ce.alignmentProperty().addListener((obs, old, newVal) -> hbox.setAlignment(mapAlignmentToPos(newVal, false)));
+                hbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), ce.getVerticalAlignment()));
+                ce.alignmentProperty().addListener((obs, old, newVal) -> hbox.setAlignment(mapAlignmentToPos(newVal, ce.getVerticalAlignment())));
+                ce.verticalAlignmentProperty().addListener((obs, old, newVal) -> hbox.setAlignment(mapAlignmentToPos(ce.getAlignment(), newVal)));
                 hbox.spacingProperty().bind(ce.spacingProperty());
                 yield hbox;
             }
             case FLOW -> {
                 FlowPane flowPane = new FlowPane();
-                flowPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), false));
-                ce.alignmentProperty().addListener((obs, old, newVal) -> flowPane.setAlignment(mapAlignmentToPos(newVal, false)));
+                flowPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), ce.getVerticalAlignment()));
+                ce.alignmentProperty().addListener((obs, old, newVal) -> flowPane.setAlignment(mapAlignmentToPos(newVal, ce.getVerticalAlignment())));
+                ce.verticalAlignmentProperty().addListener((obs, old, newVal) -> flowPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), newVal)));
                 flowPane.hgapProperty().bind(ce.spacingProperty());
                 flowPane.vgapProperty().bind(ce.spacingProperty());
                 yield flowPane;
             }
             case STACK -> {
                 StackPane stackPane = new StackPane();
-                stackPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), false));
-                ce.alignmentProperty().addListener((obs, old, newVal) -> stackPane.setAlignment(mapAlignmentToPos(newVal, false)));
+                stackPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), ce.getVerticalAlignment()));
+                ce.alignmentProperty().addListener((obs, old, newVal) -> stackPane.setAlignment(mapAlignmentToPos(newVal, ce.getVerticalAlignment())));
+                ce.verticalAlignmentProperty().addListener((obs, old, newVal) -> stackPane.setAlignment(mapAlignmentToPos(ce.getAlignment(), newVal)));
                 yield stackPane;
             }
             default -> new Pane();
@@ -1066,7 +1070,7 @@ public class CardMakerController {
     private FlowPane createIconFlowPane(IconElement ice, Map<String, String> currentRecord, ContainerElement.Alignment parentAlignment) {
         FlowPane flowPane = new FlowPane();
         flowPane.getStyleClass().add("icon-element");
-        flowPane.setAlignment(mapAlignmentToPos(parentAlignment, false));
+        flowPane.setAlignment(mapAlignmentToPos(parentAlignment, ContainerElement.VerticalAlignment.TOP));
         flowPane.setPickOnBounds(false);
         flowPane.setMaxWidth(Region.USE_PREF_SIZE);
         flowPane.setMaxHeight(Region.USE_PREF_SIZE);
@@ -1107,12 +1111,26 @@ public class CardMakerController {
         }
     }
 
-    private javafx.geometry.Pos mapAlignmentToPos(ContainerElement.Alignment alignment, boolean vertical) {
+    private javafx.geometry.Pos mapAlignmentToPos(ContainerElement.Alignment alignment, ContainerElement.VerticalAlignment vAlignment) {
         if (alignment == null) alignment = ContainerElement.Alignment.LEFT;
-        return switch (alignment) {
-            case LEFT -> vertical ? Pos.TOP_LEFT : Pos.CENTER_LEFT;
-            case CENTER -> vertical ? Pos.TOP_CENTER : Pos.CENTER;
-            case RIGHT -> vertical ? Pos.TOP_RIGHT : Pos.CENTER_RIGHT;
+        if (vAlignment == null) vAlignment = ContainerElement.VerticalAlignment.TOP;
+        
+        return switch (vAlignment) {
+            case TOP -> switch (alignment) {
+                case LEFT -> Pos.TOP_LEFT;
+                case CENTER -> Pos.TOP_CENTER;
+                case RIGHT -> Pos.TOP_RIGHT;
+            };
+            case MIDDLE -> switch (alignment) {
+                case LEFT -> Pos.CENTER_LEFT;
+                case CENTER -> Pos.CENTER;
+                case RIGHT -> Pos.CENTER_RIGHT;
+            };
+            case BOTTOM -> switch (alignment) {
+                case LEFT -> Pos.BOTTOM_LEFT;
+                case CENTER -> Pos.BOTTOM_CENTER;
+                case RIGHT -> Pos.BOTTOM_RIGHT;
+            };
         };
     }
 
@@ -1547,6 +1565,10 @@ public class CardMakerController {
             alignBox.valueProperty().bindBidirectional(ce.alignmentProperty());
             addManagedListener(ce.alignmentProperty(), (obs, old, newVal) -> renderTemplate());
 
+            ComboBox<ContainerElement.VerticalAlignment> vAlignBox = new ComboBox<>(javafx.collections.FXCollections.observableArrayList(ContainerElement.VerticalAlignment.values()));
+            vAlignBox.valueProperty().bindBidirectional(ce.verticalAlignmentProperty());
+            addManagedListener(ce.verticalAlignmentProperty(), (obs, old, newVal) -> renderTemplate());
+
             HBox spacingBox = UIUtils.createSliderWithNumericField(ce.spacingProperty(), 0, 100);
             addManagedListener(ce.spacingProperty(), (obs, old, newVal) -> renderTemplate());
 
@@ -1560,7 +1582,8 @@ public class CardMakerController {
             addProperty("Alpha", alphaBox);
             addProperty("Color", colorPicker);
             addProperty("Layout", layoutBox);
-            addProperty("Alignment", alignBox);
+            addProperty("H-Alignment", alignBox);
+            addProperty("V-Alignment", vAlignBox);
             addProperty("Spacing", spacingBox);
             propertiesPane.getChildren().add(lockedBox);
 

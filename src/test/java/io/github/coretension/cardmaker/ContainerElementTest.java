@@ -11,6 +11,7 @@ public class ContainerElementTest {
         ContainerElement ce = new ContainerElement();
         assertEquals(ContainerElement.LayoutType.POSITIONAL, ce.getLayoutType());
         assertEquals(ContainerElement.Alignment.LEFT, ce.getAlignment());
+        assertEquals(ContainerElement.VerticalAlignment.TOP, ce.getVerticalAlignment());
         assertEquals(0.0, ce.getSpacing());
         assertEquals(100.0, ce.getWidth());
         assertEquals(100.0, ce.getHeight());
@@ -22,11 +23,13 @@ public class ContainerElementTest {
         ContainerElement ce = new ContainerElement();
         ce.setLayoutType(ContainerElement.LayoutType.VERTICAL);
         ce.setAlignment(ContainerElement.Alignment.CENTER);
+        ce.setVerticalAlignment(ContainerElement.VerticalAlignment.BOTTOM);
         ce.setSpacing(10.0);
         ce.setLocked(true);
         
         assertEquals(ContainerElement.LayoutType.VERTICAL, ce.getLayoutType());
         assertEquals(ContainerElement.Alignment.CENTER, ce.getAlignment());
+        assertEquals(ContainerElement.VerticalAlignment.BOTTOM, ce.getVerticalAlignment());
         assertEquals(10.0, ce.getSpacing());
         assertTrue(ce.isLocked());
     }

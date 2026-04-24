@@ -10,8 +10,10 @@ import javafx.beans.property.*;
 public class ContainerElement extends ParentCardElement {
     /** Defines how child elements are positioned within the container. */
     public enum LayoutType { POSITIONAL, FLOW, VERTICAL, HORIZONTAL, STACK }
-    /** Defines the alignment of children within the container. */
+    /** Defines the horizontal alignment of children within the container. */
     public enum Alignment { LEFT, CENTER, RIGHT }
+    /** Defines the vertical alignment of children within the container. */
+    public enum VerticalAlignment { TOP, MIDDLE, BOTTOM }
 
     /** Width of the container. */
     private final DoubleProperty width = new SimpleDoubleProperty(100);
@@ -27,6 +29,8 @@ public class ContainerElement extends ParentCardElement {
     private final ObjectProperty<LayoutType> layoutType = new SimpleObjectProperty<>(LayoutType.POSITIONAL);
     /** Current alignment strategy. */
     private final ObjectProperty<Alignment> alignment = new SimpleObjectProperty<>(Alignment.LEFT);
+    /** Current vertical alignment strategy. */
+    private final ObjectProperty<VerticalAlignment> verticalAlignment = new SimpleObjectProperty<>(VerticalAlignment.TOP);
     /** Spacing between elements in flow, vertical, or horizontal layouts. */
     private final DoubleProperty spacing = new SimpleDoubleProperty(0);
     /** Whether the container's properties are locked for editing. */
@@ -94,6 +98,14 @@ public class ContainerElement extends ParentCardElement {
     /** @return the alignment property */
     @JsonIgnore
     public ObjectProperty<Alignment> alignmentProperty() { return alignment; }
+
+    /** @return the vertical alignment */
+    public VerticalAlignment getVerticalAlignment() { return verticalAlignment.get(); }
+    /** @param value the vertical alignment to set */
+    public void setVerticalAlignment(VerticalAlignment value) { verticalAlignment.set(value); }
+    /** @return the vertical alignment property */
+    @JsonIgnore
+    public ObjectProperty<VerticalAlignment> verticalAlignmentProperty() { return verticalAlignment; }
 
     /** @return the spacing between children */
     public double getSpacing() { return spacing.get(); }
