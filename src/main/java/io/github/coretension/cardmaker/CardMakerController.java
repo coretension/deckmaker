@@ -70,6 +70,7 @@ public class CardMakerController {
     private double zoomLevel = 1.0;
     private CardElement copiedElement;
     private long lastCsvModificationTime = 0;
+    private boolean isDirty = false;
     private Stage iconLibraryStage;
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
@@ -1356,13 +1357,15 @@ public class CardMakerController {
     }
 
     private void addSectionLabel(String text) {
-        Label label = new Label(text);
-        label.setStyle("-fx-font-weight: bold; -fx-padding: 5 0 2 0; -fx-text-fill: #555;");
+        Label label = new Label(text.toUpperCase());
+        label.setStyle("-fx-font-weight: bold; -fx-padding: 10 0 2 0; -fx-text-fill: #888; -fx-font-size: 0.85em; -fx-letter-spacing: 1px;");
         propertiesPane.getChildren().add(label);
     }
 
     private void addProperty(String label, Node control) {
-        propertiesPane.getChildren().add(new Label(label));
+        Label l = new Label(label);
+        l.setStyle("-fx-text-fill: #444; -fx-font-size: 0.9em;");
+        propertiesPane.getChildren().add(l);
         propertiesPane.getChildren().add(control);
     }
 
@@ -1720,6 +1723,7 @@ public class CardMakerController {
             currentTemplate = new CardTemplate();
             currentTemplate.setDimension(dimension);
             currentFile = null;
+            isDirty = false;
             setupTemplateListeners();
             updateCanvasSize();
             renderTemplate();
@@ -1744,6 +1748,7 @@ public class CardMakerController {
         if (file != null) {
             lastOpenedDirectory = file.getParentFile();
             loadCsvFile(file);
+            saveTempDeck();
         }
     }
 
@@ -1764,6 +1769,7 @@ public class CardMakerController {
                 currentRecordIndex = -1;
             }
             updateRecordLabel();
+            updateTitleAndStatus("Loaded CSV: " + file.getName());
             renderTemplate();
         } catch (Exception e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -2592,6 +2598,7 @@ public class CardMakerController {
         Optional<AppSettings> result = dialog.showAndWait();
         result.ifPresent(s -> {
             saveSettings();
+            saveTempDeck();
             updateCanvasSize();
             renderTemplate();
         });
@@ -2738,6 +2745,10 @@ public class CardMakerController {
     }
 
     public void saveTempDeck() {
+        if (!isDirty) {
+            isDirty = true;
+            updateTitleAndStatus();
+        }
         try {
             DeckStorage.save(currentTemplate, DeckStorage.getTempFile());
         } catch (IOException e) {
@@ -2750,6 +2761,7 @@ public class CardMakerController {
         if (tempFile.exists()) {
             try {
                 CardTemplate template = DeckStorage.load(tempFile);
+                isDirty = true;
                 applyTemplate(template);
             } catch (IOException e) {
                 System.err.println("Failed to load temp deck: " + e.getMessage());
@@ -2879,6 +2891,7 @@ public class CardMakerController {
             lastOpenedDirectory = file.getParentFile();
             CardTemplate template = DeckStorage.load(file);
             currentFile = file;
+            isDirty = false;
             settings.setLastOpenedDeckPath(file.getAbsolutePath());
             saveSettings();
             applyTemplate(template);
@@ -2895,9 +2908,10 @@ public class CardMakerController {
         try {
             DeckStorage.save(currentTemplate, file);
             currentFile = file;
+            isDirty = false;
             settings.setLastOpenedDeckPath(file.getAbsolutePath());
             saveSettings();
-            updateTitleAndStatus();
+            updateTitleAndStatus("Saved: " + file.getName());
             deleteTempDeck();
         } catch (IOException e) {
             // Silently fail during auto-save if needed, but for manual save show alert
@@ -2913,11 +2927,24 @@ public class CardMakerController {
      * Updates the main window title and status bar label to show the current deck name.
      */
     private void updateTitleAndStatus() {
+        updateTitleAndStatus(null);
+    }
+
+    private void updateTitleAndStatus(String temporaryMessage) {
         String deckName = (currentFile != null) ? currentFile.getName() : "Unsaved Deck";
-        statusLabel.setText("Deck: " + deckName);
+        if (isDirty) {
+            deckName += " (modified)";
+        }
+        
+        if (temporaryMessage != null) {
+            statusLabel.setText(temporaryMessage);
+            // Optionally clear after some time, but for now we'll just show it
+        } else {
+            statusLabel.setText("Deck: " + deckName + (csvData.isEmpty() ? "" : " | CSV: " + csvData.size() + " records"));
+        }
 
         if (propertiesPane.getScene() != null && propertiesPane.getScene().getWindow() instanceof Stage stage) {
-            stage.setTitle("CardMaker - " + deckName);
+            stage.setTitle("CardMaker - " + (currentFile != null ? currentFile.getName() : "Unsaved") + (isDirty ? "*" : ""));
         }
     }
 }

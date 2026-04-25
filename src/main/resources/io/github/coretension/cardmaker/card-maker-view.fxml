@@ -91,12 +91,12 @@
         </VBox>
     </top>
     <left>
-        <VBox spacing="10" prefWidth="200" style="-fx-background-color: #eee;">
+        <VBox spacing="10" prefWidth="220" style="-fx-background-color: #f4f4f4; -fx-border-color: #ccc; -fx-border-width: 0 1 0 0;">
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
-            <Label text="Elements" style="-fx-font-weight: bold;"/>
-            <TreeView fx:id="elementTreeView" VBox.vgrow="ALWAYS"/>
+            <Label text="ELEMENTS" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
+            <TreeView fx:id="elementTreeView" VBox.vgrow="ALWAYS" style="-fx-background-insets: 0;"/>
         </VBox>
     </left>
     <center>
@@ -126,20 +126,21 @@
         </StackPane>
     </center>
     <right>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="250" style="-fx-background-color: #eee;">
-            <VBox spacing="10">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="280" style="-fx-background-color: #f4f4f4; -fx-border-color: #ccc; -fx-border-width: 0 0 0 1;">
+            <VBox spacing="15">
                 <padding>
-                    <Insets top="10" right="10" bottom="10" left="10"/>
+                    <Insets top="10" right="15" bottom="10" left="15"/>
                 </padding>
-                <Label text="Properties" style="-fx-font-weight: bold;"/>
-                <VBox fx:id="propertiesPane" spacing="10"/>
+                <Label text="PROPERTIES" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
+                <VBox fx:id="propertiesPane" spacing="12"/>
                 <Separator/>
-                <Label text="Data Preview" style="-fx-font-weight: bold;"/>
-                <HBox spacing="5" alignment="CENTER">
-                    <Button text="&lt;" onAction="#handlePrevRecord"/>
-                    <Label fx:id="recordLabel" text="0 / 0"/>
-                    <Button text="&gt;" onAction="#handleNextRecord"/>
-                    <Button text="View" onAction="#handleViewData"/>
+                <Label text="DATA PREVIEW" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
+                <HBox spacing="8" alignment="CENTER">
+                    <Button text="⏴" onAction="#handlePrevRecord" style="-fx-font-size: 1.1em;"/>
+                    <Label fx:id="recordLabel" text="0 / 0" style="-fx-font-family: 'Monospaced';"/>
+                    <Button text="⏵" onAction="#handleNextRecord" style="-fx-font-size: 1.1em;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Details" onAction="#handleViewData"/>
                 </HBox>
             </VBox>
         </ScrollPane>
