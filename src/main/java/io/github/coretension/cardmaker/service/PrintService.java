@@ -1,5 +1,8 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.service;
 
+import io.github.coretension.cardmaker.model.CardDimension;
+import io.github.coretension.cardmaker.model.CardTemplate;
+import io.github.coretension.cardmaker.ui.CardMakerController;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

@@ -1,5 +1,9 @@
 package io.github.coretension.cardmaker;
 
+import io.github.coretension.cardmaker.config.*;
+import io.github.coretension.cardmaker.model.*;
+import io.github.coretension.cardmaker.persistence.*;
+import io.github.coretension.cardmaker.service.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,3 +35,4 @@ public class IconElementTest {
         assertEquals("Custom", ice.getMappingName());
     }
 }
+

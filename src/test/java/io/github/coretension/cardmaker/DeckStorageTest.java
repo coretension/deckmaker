@@ -1,5 +1,9 @@
 package io.github.coretension.cardmaker;
 
+import io.github.coretension.cardmaker.config.*;
+import io.github.coretension.cardmaker.model.*;
+import io.github.coretension.cardmaker.persistence.*;
+import io.github.coretension.cardmaker.service.*;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import org.junit.jupiter.api.Test;
@@ -134,3 +138,4 @@ public class DeckStorageTest {
         }
     }
 }
+

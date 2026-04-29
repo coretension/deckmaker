@@ -1,5 +1,9 @@
 package io.github.coretension.cardmaker;
 
+import io.github.coretension.cardmaker.config.*;
+import io.github.coretension.cardmaker.model.*;
+import io.github.coretension.cardmaker.persistence.*;
+import io.github.coretension.cardmaker.service.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -26,3 +30,4 @@ public class PdfExportServiceTest {
         // But since this is a "Forensics/Fix" task, I'll focus on compilation and structure.
     }
 }
+

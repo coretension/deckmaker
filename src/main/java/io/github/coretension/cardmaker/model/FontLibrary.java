@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import javafx.collections.FXCollections;

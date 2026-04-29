@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.ui;
 
 import javafx.beans.property.DoubleProperty;
 import javafx.scene.control.Label;

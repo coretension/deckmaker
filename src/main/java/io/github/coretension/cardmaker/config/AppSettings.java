@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.config;
 
 /**
  * Holds application-wide settings and state.

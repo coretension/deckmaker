@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.app;
 
 import javafx.application.Application;
 

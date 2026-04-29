@@ -1,5 +1,7 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.app;
 
+import io.github.coretension.cardmaker.model.CardDimension;
+import io.github.coretension.cardmaker.ui.CardMakerController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -24,7 +26,8 @@ public class CardMakerApplication extends Application {
         double screenDpi = Screen.getPrimary().getDpi();
         CardDimension.setDpi(screenDpi);
 
-        FXMLLoader fxmlLoader = new FXMLLoader(CardMakerApplication.class.getResource("card-maker-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(CardMakerApplication.class.getResource(
+                "/io/github/coretension/cardmaker/card-maker-view.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 1000, 700);
         CardMakerController controller = fxmlLoader.getController();
 

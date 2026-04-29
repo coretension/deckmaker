@@ -1,9 +1,12 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.service;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfWriter;
+import io.github.coretension.cardmaker.model.CardDimension;
+import io.github.coretension.cardmaker.model.CardTemplate;
+import io.github.coretension.cardmaker.ui.CardMakerController;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;

@@ -1,5 +1,9 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.ui;
 
+import io.github.coretension.cardmaker.config.AppSettings;
+import io.github.coretension.cardmaker.model.*;
+import io.github.coretension.cardmaker.persistence.DeckStorage;
+import io.github.coretension.cardmaker.service.*;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -55,12 +59,9 @@ public class CardMakerController {
     @FXML private Label coordinatesLabel;
     @FXML private Label statusLabel;
 
-    private static final int MAX_HISTORY_SIZE = 100;
-
     private final Map<CardElement, ChangeListener<Number>> xListeners = new HashMap<>();
     private final Map<CardElement, ChangeListener<Number>> yListeners = new HashMap<>();
-    private final Deque<String> undoHistory = new ArrayDeque<>();
-    private final Deque<String> redoHistory = new ArrayDeque<>();
+    private final TemplateHistory history = new TemplateHistory();
 
     private CardTemplate currentTemplate = new CardTemplate();
     private List<Map<String, String>> csvData = new ArrayList<>();
@@ -77,9 +78,6 @@ public class CardMakerController {
     private CardElement copiedElement;
     private long lastCsvModificationTime = 0;
     private boolean isDirty = false;
-    private boolean restoringHistory = false;
-    private int historySuppressionDepth = 0;
-    private String lastHistorySnapshot;
     private Stage iconLibraryStage;
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
@@ -2858,34 +2856,19 @@ public class CardMakerController {
     }
 
     private void resetHistory() {
-        undoHistory.clear();
-        redoHistory.clear();
         try {
-            lastHistorySnapshot = DeckStorage.toJson(currentTemplate);
-            undoHistory.addLast(lastHistorySnapshot);
+            history.reset(currentTemplate);
         } catch (IOException e) {
-            lastHistorySnapshot = null;
             System.err.println("Failed to initialize undo history: " + e.getMessage());
         }
         updateHistoryControls();
     }
 
     private void recordHistorySnapshot() {
-        if (restoringHistory || historySuppressionDepth > 0) {
-            return;
-        }
         try {
-            String snapshot = DeckStorage.toJson(currentTemplate);
-            if (Objects.equals(snapshot, lastHistorySnapshot)) {
-                return;
+            if (history.record(currentTemplate)) {
+                updateHistoryControls();
             }
-            undoHistory.addLast(snapshot);
-            while (undoHistory.size() > MAX_HISTORY_SIZE) {
-                undoHistory.removeFirst();
-            }
-            redoHistory.clear();
-            lastHistorySnapshot = snapshot;
-            updateHistoryControls();
         } catch (IOException e) {
             System.err.println("Failed to record undo history: " + e.getMessage());
         }
@@ -2893,97 +2876,64 @@ public class CardMakerController {
 
     private void updateHistoryControls() {
         if (undoMenuItem != null) {
-            undoMenuItem.setDisable(undoHistory.size() <= 1);
+            undoMenuItem.setDisable(!history.canUndo());
         }
         if (redoMenuItem != null) {
-            redoMenuItem.setDisable(redoHistory.isEmpty());
+            redoMenuItem.setDisable(!history.canRedo());
         }
     }
 
     private void beginHistoryCompoundEdit() {
-        historySuppressionDepth++;
+        history.suppressRecording();
     }
 
     private void endHistoryCompoundEdit() {
-        if (historySuppressionDepth > 0) {
-            historySuppressionDepth--;
-        }
+        history.resumeRecording();
         saveTempDeck();
     }
 
     @FXML
     void handleUndo(ActionEvent event) {
-        if (undoHistory.size() <= 1) {
-            return;
-        }
-        String current = undoHistory.removeLast();
-        redoHistory.addLast(current);
-        String previous = undoHistory.peekLast();
-        if (previous != null) {
-            restoreHistorySnapshot(previous, "Undo");
+        try {
+            history.undo().ifPresent(template -> restoreHistoryTemplate(template, "Undo"));
+            updateHistoryControls();
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to restore undo history: " + e.getMessage());
+            alert.show();
         }
     }
 
     @FXML
     void handleRedo(ActionEvent event) {
-        if (redoHistory.isEmpty()) {
-            return;
+        try {
+            history.redo().ifPresent(template -> restoreHistoryTemplate(template, "Redo"));
+            updateHistoryControls();
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to restore redo history: " + e.getMessage());
+            alert.show();
         }
-        String snapshot = redoHistory.removeLast();
-        undoHistory.addLast(snapshot);
-        restoreHistorySnapshot(snapshot, "Redo");
     }
 
-    private void restoreHistorySnapshot(String snapshot, String statusMessage) {
-        List<Integer> selectedPath = getSelectedTreePath();
-        restoringHistory = true;
+    private void restoreHistoryTemplate(CardTemplate template, String statusMessage) {
+        List<Integer> selectedPath = TreeSelectionPath.capture(elementTreeView);
+        history.suppressRecording();
         try {
-            CardTemplate template = DeckStorage.fromJson(snapshot);
             closeTemplateEditorWindows();
             applyTemplate(template);
             selectTreePath(selectedPath);
             isDirty = true;
-            lastHistorySnapshot = snapshot;
             saveTempDeck();
             updateTitleAndStatus(statusMessage);
-        } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to restore history: " + e.getMessage());
-            alert.show();
         } finally {
-            restoringHistory = false;
+            history.resumeRecording();
             updateHistoryControls();
         }
     }
 
-    private List<Integer> getSelectedTreePath() {
-        TreeItem<CardElement> selected = elementTreeView.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            return List.of();
-        }
-        LinkedList<Integer> path = new LinkedList<>();
-        TreeItem<CardElement> current = selected;
-        while (current.getParent() != null) {
-            TreeItem<CardElement> parent = current.getParent();
-            path.addFirst(parent.getChildren().indexOf(current));
-            current = parent;
-        }
-        return path;
-    }
-
     private void selectTreePath(List<Integer> path) {
-        TreeItem<CardElement> item = elementTreeView.getRoot();
-        for (int index : path) {
-            if (item == null || index < 0 || index >= item.getChildren().size()) {
-                elementTreeView.getSelectionModel().clearSelection();
-                updatePropertiesPane(null);
-                highlightOnCanvas(null);
-                updateCoordinatesLabel(null);
-                return;
-            }
-            item = item.getChildren().get(index);
-        }
-        if (item != null && item.getValue() != null) {
-            elementTreeView.getSelectionModel().select(item);
+        Optional<TreeItem<CardElement>> item = TreeSelectionPath.resolve(elementTreeView, path);
+        if (item.isPresent() && item.get().getValue() != null) {
+            elementTreeView.getSelectionModel().select(item.get());
         } else {
             elementTreeView.getSelectionModel().clearSelection();
             updatePropertiesPane(null);

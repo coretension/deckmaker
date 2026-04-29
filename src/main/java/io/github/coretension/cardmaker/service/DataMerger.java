@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.service;
 
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;

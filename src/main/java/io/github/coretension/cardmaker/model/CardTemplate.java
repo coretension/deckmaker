@@ -1,4 +1,4 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.model;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

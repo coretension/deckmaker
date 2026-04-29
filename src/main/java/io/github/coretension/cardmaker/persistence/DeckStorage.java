@@ -1,9 +1,13 @@
-package io.github.coretension.cardmaker;
+package io.github.coretension.cardmaker.persistence;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.github.coretension.cardmaker.config.AppSettings;
+import io.github.coretension.cardmaker.model.CardElement;
+import io.github.coretension.cardmaker.model.CardTemplate;
+import io.github.coretension.cardmaker.model.ContainerElement;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
