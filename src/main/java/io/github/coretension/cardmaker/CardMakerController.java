@@ -112,6 +112,15 @@ public class CardMakerController {
                         Label iconLabel = new Label(icon);
                         iconLabel.setMinWidth(20);
                         iconLabel.setAlignment(Pos.CENTER);
+                        iconLabel.setTooltip(new Tooltip(switch (item) {
+                            case TextElement te -> "Text Element";
+                            case ImageElement ie -> "Image Element";
+                            case IconElement ice -> "Icon Group Element";
+                            case ContainerElement ce -> "Container Element";
+                            case FontElement fe -> "Font Configuration";
+                            case ConditionElement ce2 -> "Condition";
+                            default -> "Element";
+                        }));
                         setGraphic(iconLabel);
 
                         textProperty().bind(item.nameProperty());
@@ -642,6 +651,7 @@ public class CardMakerController {
 
 
     private void updateCanvasSize() {
+        cardCanvas.setSnapToPixel(false);
         double width = currentTemplate.getDimension().getWidthPx();
         double height = currentTemplate.getDimension().getHeightPx();
         double bleedPx = professionalMode ? currentTemplate.getBleedMm() * (CardDimension.getDpi() / 25.4) : 0;
@@ -714,6 +724,7 @@ public class CardMakerController {
         double heightPx = (currentTemplate.getDimension().getHeightMm() + 2 * bleedMm) * dpi / 25.4;
 
         Pane root = new Pane();
+        root.setSnapToPixel(false);
         root.setPrefSize(widthPx, heightPx);
         root.setMinSize(widthPx, heightPx);
         root.setMaxSize(widthPx, heightPx);
@@ -725,6 +736,7 @@ public class CardMakerController {
 
         double scale = dpi / CardDimension.getDpi();
         Pane contentPane = new Pane();
+        contentPane.setSnapToPixel(false);
         double bleedPx = bleedMm * dpi / 25.4;
         contentPane.setLayoutX(bleedPx);
         contentPane.setLayoutY(bleedPx);
@@ -995,6 +1007,7 @@ public class CardMakerController {
         }, ie.widthProperty(), ie.heightProperty(), ie.lockAspectRatioProperty(), imageView.imageProperty()));
 
         Pane pane = new Pane(imageView);
+        pane.setSnapToPixel(false);
         pane.getStyleClass().add("image-container");
         pane.minWidthProperty().bind(imageView.fitWidthProperty());
         pane.maxWidthProperty().bind(imageView.fitWidthProperty());
@@ -1053,12 +1066,13 @@ public class CardMakerController {
         pane.maxHeightProperty().bind(ce.heightProperty());
         pane.prefWidthProperty().bind(ce.widthProperty());
         pane.prefHeightProperty().bind(ce.heightProperty());
+        pane.setSnapToPixel(false);
 
         updatePaneStyle(pane, ce.getBackgroundColor(), ce.getAlpha(), forFinalDesign);
         ce.backgroundColorProperty().addListener((obs, old, newVal) -> updatePaneStyle(pane, newVal, ce.getAlpha(), forFinalDesign));
         ce.alphaProperty().addListener((obs, old, newVal) -> updatePaneStyle(pane, ce.getBackgroundColor(), newVal.doubleValue(), forFinalDesign));
 
-        if (!showClippedContent) {
+        if (!showClippedContent || forFinalDesign) {
             javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle();
             clip.widthProperty().bind(pane.widthProperty());
             clip.heightProperty().bind(pane.heightProperty());
@@ -1070,6 +1084,7 @@ public class CardMakerController {
 
     private FlowPane createIconFlowPane(IconElement ice, Map<String, String> currentRecord, ContainerElement.Alignment parentAlignment) {
         FlowPane flowPane = new FlowPane();
+        flowPane.setSnapToPixel(false);
         flowPane.getStyleClass().add("icon-element");
         flowPane.setAlignment(mapAlignmentToPos(parentAlignment, ContainerElement.VerticalAlignment.TOP));
         flowPane.setPickOnBounds(false);
@@ -1276,33 +1291,51 @@ public class CardMakerController {
 
     private void makeDraggable(Node node, CardElement el) {
         final Delta dragDelta = new Delta();
+        final CardElement[] targetEl = new CardElement[1];
+        final Node[] targetNode = new Node[1];
+
         node.setOnMousePressed(mouseEvent -> {
-            dragDelta.x = el.getX() - mouseEvent.getSceneX();
-            dragDelta.y = el.getY() - mouseEvent.getSceneY();
+            CardElement selected = getSelectedElement();
+            // If a container is already selected and we clicked it or its child, 
+            // keep dragging the container instead of selecting the child.
+            if (selected instanceof ContainerElement ce && isDescendant(ce, el)) {
+                targetEl[0] = ce;
+                targetNode[0] = findNodeForElement(cardCanvas, ce);
+            } else {
+                targetEl[0] = el;
+                targetNode[0] = node;
+                // Normal selection behavior
+                if (!selectElement(el)) {
+                    elementTreeView.getSelectionModel().clearSelection();
+                    updatePropertiesPane(el);
+                    highlightOnCanvas(el);
+                }
+            }
             
-            // Try to select in list; if not there, still update properties pane
-            if (!selectElement(el)) {
-                elementTreeView.getSelectionModel().clearSelection();
-                updatePropertiesPane(el);
-                highlightOnCanvas(el);
+            if (targetEl[0] != null) {
+                dragDelta.x = targetEl[0].getX() - mouseEvent.getSceneX();
+                dragDelta.y = targetEl[0].getY() - mouseEvent.getSceneY();
             }
             
             mouseEvent.consume();
         });
+
         node.setOnMouseDragged(mouseEvent -> {
+            if (targetEl[0] == null || targetNode[0] == null) return;
+            CardElement activeEl = targetEl[0];
+            Node activeNode = targetNode[0];
+
             double newX = mouseEvent.getSceneX() + dragDelta.x;
             double newY = mouseEvent.getSceneY() + dragDelta.y;
             
             double cardWidth = currentTemplate.getDimension().getWidthPx();
             double cardHeight = currentTemplate.getDimension().getHeightPx();
             
-            double width = node.getLayoutBounds().getWidth();
-            double height = node.getLayoutBounds().getHeight();
+            double width = activeNode.getLayoutBounds().getWidth();
+            double height = activeNode.getLayoutBounds().getHeight();
             
-            if (node instanceof Text text) {
-                // For Text nodes, layoutBounds includes wrappingWidth which might be bound to the card width.
-                // To get the actual visual width of the text content without the wrapping constraint,
-                // we use a temporary Text node with the same properties.
+            if (activeNode instanceof Text text) {
+                // Special handling for Text nodes to get accurate visual bounds
                 Text temp = new Text(text.getText());
                 temp.setFont(text.getFont());
                 temp.setStrokeWidth(text.getStrokeWidth());
@@ -1310,24 +1343,24 @@ public class CardMakerController {
                 height = temp.getLayoutBounds().getHeight();
             }
             
-            // Constrain X
-            if (!(el instanceof ImageElement ie && ie.isAllowOverflow())) {
+            // Constrain X position
+            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
                 newX = Math.max(0, newX);
                 if (newX + width > cardWidth) {
                     newX = Math.max(0, cardWidth - width);
                 }
             }
             
-            // Constrain Y
-            if (!(el instanceof ImageElement ie && ie.isAllowOverflow())) {
+            // Constrain Y position
+            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
                 newY = Math.max(0, newY);
                 if (newY + height > cardHeight) {
                     newY = Math.max(0, cardHeight - height);
                 }
             }
 
-            el.setX(newX);
-            el.setY(newY);
+            activeEl.setX(newX);
+            activeEl.setY(newY);
             mouseEvent.consume();
         });
     }
@@ -1363,8 +1396,25 @@ public class CardMakerController {
     }
 
     private void addProperty(String label, Node control) {
+        addProperty(label, control, null);
+    }
+
+    private void addProperty(String label, Node control, String tooltipText) {
         Label l = new Label(label);
         l.setStyle("-fx-text-fill: #444; -fx-font-size: 0.9em;");
+        if (tooltipText != null) {
+            Tooltip tooltip = new Tooltip(tooltipText);
+            l.setTooltip(tooltip);
+            if (control instanceof Control c) {
+                c.setTooltip(tooltip);
+            } else if (control instanceof Pane p) {
+                for (Node child : p.getChildren()) {
+                    if (child instanceof Control c) {
+                        c.setTooltip(tooltip);
+                    }
+                }
+            }
+        }
         propertiesPane.getChildren().add(l);
         propertiesPane.getChildren().add(control);
     }
@@ -1377,14 +1427,14 @@ public class CardMakerController {
         addSectionLabel("Element Settings");
         TextField nameField = new TextField(el.getName());
         nameField.textProperty().bindBidirectional(el.nameProperty());
-        addProperty("Name", nameField);
+        addProperty("Name", nameField, "The name of this element in the element tree");
 
         if (el instanceof ConditionElement ce) {
             addSectionLabel("Condition");
             TextField conditionField = new TextField(ce.getCondition());
             conditionField.textProperty().bindBidirectional(ce.conditionProperty());
             addManagedListener(ce.conditionProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("CSV Column or Expression", conditionField);
+            addProperty("CSV Column or Expression", conditionField, "CSV column name (e.g., 'type') or expression (e.g., 'level>5') to control visibility");
         }
 
         if (el instanceof TextElement te) {
@@ -1393,7 +1443,7 @@ public class CardMakerController {
             textArea.setPrefRowCount(3);
             textArea.textProperty().bindBidirectional(te.textProperty());
             addManagedListener(te.textProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("Content (use {{header}} for merge)", textArea);
+            addProperty("Content (use {{header}} for merge)", textArea, "The text to display. Use {{Header}} to insert dynamic CSV data.");
 
             addSectionLabel("Appearance");
             ComboBox<String> fontConfigCombo = new ComboBox<>();
@@ -1402,14 +1452,14 @@ public class CardMakerController {
             fontConfigCombo.setValue(te.getFontConfigName());
             te.fontConfigNameProperty().bind(fontConfigCombo.valueProperty());
             addManagedListener(te.fontConfigNameProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("Font Configuration", fontConfigCombo);
+            addProperty("Font Configuration", fontConfigCombo, "Select a pre-defined font style from the Font Library");
 
             javafx.beans.binding.BooleanBinding isNotDefault = te.fontConfigNameProperty().isNotEqualTo("Default");
 
             HBox sizeBox = UIUtils.createSliderWithNumericField(te.fontSizeProperty(), 8, 72);
             sizeBox.disableProperty().bind(isNotDefault);
             addManagedListener(te.fontSizeProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("Size", sizeBox);
+            addProperty("Size", sizeBox, "Adjust the font size in points");
 
             ColorPicker colorPicker = new ColorPicker(Color.web(te.getColor()));
             colorPicker.setStyle("-fx-color-label-visible: true;");
@@ -1419,13 +1469,13 @@ public class CardMakerController {
                 te.setColor(UIUtils.toHexString(colorPicker.getValue()));
                 renderTemplate();
             });
-            addProperty("Color", colorPicker);
+            addProperty("Color", colorPicker, "Choose the color for the text");
 
             addSectionLabel("Layout");
             HBox angleBox = UIUtils.createSliderWithNumericField(te.angleProperty(), -360, 360);
             angleBox.disableProperty().bind(isNotDefault);
             addManagedListener(te.angleProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("Angle", angleBox);
+            addProperty("Angle", angleBox, "Rotate the element (in degrees)");
 
         } else if (el instanceof ImageElement ie) {
             addSectionLabel("Source");
@@ -1492,18 +1542,20 @@ public class CardMakerController {
             });
 
             CheckBox lockAspectBox = new CheckBox("Lock Aspect Ratio");
+            lockAspectBox.setTooltip(new Tooltip("Maintain the same proportions when resizing"));
             lockAspectBox.selectedProperty().bindBidirectional(ie.lockAspectRatioProperty());
 
             CheckBox allowOverflowBox = new CheckBox("Allow Overflow (goes out of bounds)");
+            allowOverflowBox.setTooltip(new Tooltip("If enabled, the element won't be clipped by its parent's bounds"));
             allowOverflowBox.selectedProperty().bindBidirectional(ie.allowOverflowProperty());
             addManagedListener(ie.allowOverflowProperty(), (obs, old, newVal) -> {
                 updateCanvasSize();
                 renderTemplate();
             });
 
-            addProperty("Path (use {{header}} for merge)", new HBox(5, pathField, browseBtn));
-            addProperty("Width", widthBox);
-            addProperty("Height", heightBox);
+            addProperty("Path (use {{header}} for merge)", new HBox(5, pathField, browseBtn), "Path to the image file. Use {{Header}} for dynamic paths.");
+            addProperty("Width", widthBox, "Width of the image in millimeters");
+            addProperty("Height", heightBox, "Height of the image in millimeters");
             propertiesPane.getChildren().addAll(lockAspectBox, allowOverflowBox);
 
         } else if (el instanceof ContainerElement ce) {
@@ -1529,6 +1581,7 @@ public class CardMakerController {
             });
 
             CheckBox lockAspectBox = new CheckBox("Lock Aspect Ratio");
+            lockAspectBox.setTooltip(new Tooltip("Maintain the same proportions when resizing"));
             lockAspectBox.selectedProperty().bindBidirectional(ce.lockAspectRatioProperty());
 
             addSectionLabel("Appearance");
@@ -1576,18 +1629,19 @@ public class CardMakerController {
             addManagedListener(ce.spacingProperty(), (obs, old, newVal) -> renderTemplate());
 
             CheckBox lockedBox = new CheckBox("Locked (Children non-editable)");
+            lockedBox.setTooltip(new Tooltip("If enabled, children cannot be selected or moved on the canvas"));
             lockedBox.selectedProperty().bindBidirectional(ce.lockedProperty());
             addManagedListener(ce.lockedProperty(), (obs, old, newVal) -> renderTemplate());
 
-            addProperty("Width", widthBox);
-            addProperty("Height", heightBox);
+            addProperty("Width", widthBox, "Width of the container in millimeters");
+            addProperty("Height", heightBox, "Height of the container in millimeters");
             propertiesPane.getChildren().add(lockAspectBox);
-            addProperty("Alpha", alphaBox);
-            addProperty("Color", colorPicker);
-            addProperty("Layout", layoutBox);
-            addProperty("H-Alignment", alignBox);
-            addProperty("V-Alignment", vAlignBox);
-            addProperty("Spacing", spacingBox);
+            addProperty("Alpha", alphaBox, "Opacity level (0.0 = transparent, 1.0 = opaque)");
+            addProperty("Color", colorPicker, "The fill color for this container");
+            addProperty("Layout", layoutBox, "How children are arranged: POSITIONAL (manual), HORIZONTAL (row), VERTICAL (column), STACK (layered)");
+            addProperty("H-Alignment", alignBox, "Horizontal alignment of children");
+            addProperty("V-Alignment", vAlignBox, "Vertical alignment of children");
+            addProperty("Spacing", spacingBox, "Space between children in HORIZONTAL or VERTICAL layouts");
             propertiesPane.getChildren().add(lockedBox);
 
         } else if (el instanceof IconElement ice) {
@@ -1601,11 +1655,11 @@ public class CardMakerController {
             mappingBox.getItems().addAll(currentTemplate.getIconLibrary().getMappings().keySet());
             mappingBox.valueProperty().bindBidirectional(ice.mappingNameProperty());
 
-            addProperty("Value (supports {{header}})", valueField);
-            addProperty("Icon Mapping", mappingBox);
+            addProperty("Value (supports {{header}})", valueField, "The text to be replaced by icons based on mapping");
+            addProperty("Icon Mapping", mappingBox, "Select which icon mapping configuration to use");
             addSectionLabel("Icon Dimensions");
-            addProperty("Width", iconWidthBox);
-            addProperty("Height", iconHeightBox);
+            addProperty("Width", iconWidthBox, "Width of each icon in millimeters");
+            addProperty("Height", iconHeightBox, "Height of each icon in millimeters");
 
         } else if (el instanceof FontElement fe) {
             ComboBox<String> familyBox = new ComboBox<>(FXCollections.observableArrayList(Font.getFamilies()));
@@ -1650,14 +1704,14 @@ public class CardMakerController {
                 renderTemplate();
             });
 
-            addProperty("Family", familyBox);
-            addProperty("Size", sizeBox);
-            addProperty("Weight", weightBox);
-            addProperty("Posture", postureBox);
-            addProperty("Color", colorPicker);
-            addProperty("Angle", angleBox);
-            addProperty("Outline Width", outlineWidthBox);
-            addProperty("Outline Color", outlineColorPicker);
+            addProperty("Family", familyBox, "The font family name");
+            addProperty("Size", sizeBox, "Adjust the font size in points");
+            addProperty("Weight", weightBox, "Choose the font weight (e.g., Normal, Bold)");
+            addProperty("Posture", postureBox, "Choose the font posture (e.g., Regular, Italic)");
+            addProperty("Color", colorPicker, "Choose the color for the text");
+            addProperty("Angle", angleBox, "Rotate the text (in degrees)");
+            addProperty("Outline Width", outlineWidthBox, "Width of the text outline");
+            addProperty("Outline Color", outlineColorPicker, "Color of the text outline");
         }
     }
 
@@ -1838,7 +1892,9 @@ public class CardMakerController {
         newMapNameField.setPromptText("New Mapping Name");
         HBox.setHgrow(newMapNameField, Priority.ALWAYS);
         Button addMapBtn = new Button("Add Mapping");
+        addMapBtn.setTooltip(new Tooltip("Create a new named icon mapping"));
         Button removeMapBtn = new Button("Remove Selected");
+        removeMapBtn.setTooltip(new Tooltip("Delete the selected icon mapping"));
         mappingActions.getChildren().addAll(newMapNameField, addMapBtn, removeMapBtn);
 
         mappingSection.getChildren().addAll(mappingLabel, mappingList, mappingActions);
@@ -1867,6 +1923,7 @@ public class CardMakerController {
                     newKeyField.setPromptText("New Key (e.g., F, FF, HP)");
                     HBox.setHgrow(newKeyField, Priority.ALWAYS);
                     Button addKeyBtn = new Button("Add Key");
+                    addKeyBtn.setTooltip(new Tooltip("Add a new character sequence to be replaced by an icon"));
                     addKeyRow.getChildren().addAll(newKeyField, addKeyBtn);
 
                     VBox rowsContainer = new VBox(8);
@@ -1959,7 +2016,9 @@ public class CardMakerController {
         newFontNameField.setPromptText("New Font Config Name");
         HBox.setHgrow(newFontNameField, Priority.ALWAYS);
         Button addFontBtn = new Button("Add Font");
+        addFontBtn.setTooltip(new Tooltip("Create a new named font configuration"));
         Button removeFontBtn = new Button("Remove Selected");
+        removeFontBtn.setTooltip(new Tooltip("Delete the selected font configuration"));
         fontActions.getChildren().addAll(newFontNameField, addFontBtn, removeFontBtn);
 
         fontSection.getChildren().addAll(fontLabel, fontList, fontActions);
@@ -1987,6 +2046,7 @@ public class CardMakerController {
                     ComboBox<String> familyBox = new ComboBox<>(FXCollections.observableArrayList(Font.getFamilies()));
                     familyBox.setValue(fontEl.getFontFamily());
                     familyBox.setMaxWidth(Double.MAX_VALUE);
+                    familyBox.setTooltip(new Tooltip("The font family name"));
                     fontEl.fontFamilyProperty().bind(familyBox.valueProperty());
                     familyBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
@@ -1994,6 +2054,8 @@ public class CardMakerController {
                     });
 
                     HBox sizeBox = UIUtils.createSliderWithNumericField(fontEl.fontSizeProperty(), 8, 120);
+                    Tooltip sizeTooltip = new Tooltip("Adjust the font size in points");
+                    sizeBox.getChildren().forEach(n -> { if (n instanceof Control c) c.setTooltip(sizeTooltip); });
                     fontEl.fontSizeProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
@@ -2002,6 +2064,7 @@ public class CardMakerController {
                     ComboBox<FontWeight> weightBox = new ComboBox<>(FXCollections.observableArrayList(FontWeight.values()));
                     weightBox.setValue(fontEl.getFontWeight());
                     weightBox.setMaxWidth(Double.MAX_VALUE);
+                    weightBox.setTooltip(new Tooltip("Choose the font weight (e.g., Normal, Bold)"));
                     fontEl.fontWeightProperty().bind(weightBox.valueProperty());
                     weightBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
@@ -2011,6 +2074,7 @@ public class CardMakerController {
                     ComboBox<FontPosture> postureBox = new ComboBox<>(FXCollections.observableArrayList(FontPosture.values()));
                     postureBox.setValue(fontEl.getFontPosture());
                     postureBox.setMaxWidth(Double.MAX_VALUE);
+                    postureBox.setTooltip(new Tooltip("Choose the font posture (e.g., Regular, Italic)"));
                     fontEl.fontPostureProperty().bind(postureBox.valueProperty());
                     postureBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
@@ -2020,6 +2084,7 @@ public class CardMakerController {
                     ColorPicker colorPicker = new ColorPicker(Color.web(fontEl.getColor()));
                     colorPicker.setStyle("-fx-color-label-visible: true;");
                     colorPicker.setMaxWidth(Double.MAX_VALUE);
+                    colorPicker.setTooltip(new Tooltip("Choose the color for the text"));
                     colorPicker.setOnAction(ce -> {
                         fontEl.setColor(UIUtils.toHexString(colorPicker.getValue()));
                         renderTemplate();
@@ -2027,12 +2092,16 @@ public class CardMakerController {
                     });
 
                     HBox angleBox = UIUtils.createSliderWithNumericField(fontEl.angleProperty(), -360, 360);
+                    Tooltip angleTooltip = new Tooltip("Rotate the text (in degrees)");
+                    angleBox.getChildren().forEach(n -> { if (n instanceof Control c) c.setTooltip(angleTooltip); });
                     fontEl.angleProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
                     });
 
                     HBox outlineWidthBox = UIUtils.createSliderWithNumericField(fontEl.outlineWidthProperty(), 0, 20);
+                    Tooltip outlineTooltip = new Tooltip("Width of the text outline");
+                    outlineWidthBox.getChildren().forEach(n -> { if (n instanceof Control c) c.setTooltip(outlineTooltip); });
                     fontEl.outlineWidthProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
@@ -2041,6 +2110,7 @@ public class CardMakerController {
                     ColorPicker outlineColorPicker = new ColorPicker(Color.web(fontEl.getOutlineColor()));
                     outlineColorPicker.setStyle("-fx-color-label-visible: true;");
                     outlineColorPicker.setMaxWidth(Double.MAX_VALUE);
+                    outlineColorPicker.setTooltip(new Tooltip("Color of the text outline"));
                     outlineColorPicker.setOnAction(ce -> {
                         fontEl.setOutlineColor(UIUtils.toHexString(outlineColorPicker.getValue()));
                         renderTemplate();
@@ -2410,7 +2480,9 @@ public class CardMakerController {
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
         Button saveButton = new Button("Save to File");
+        saveButton.setTooltip(new Tooltip("Save changes back to the original CSV file"));
         Button closeButton = new Button("Close");
+        closeButton.setTooltip(new Tooltip("Close the data viewer"));
 
         saveButton.setOnAction(e -> {
             csvData = new ArrayList<>(data);
@@ -2561,6 +2633,7 @@ public class CardMakerController {
         pathField.setText(settings.getLastOpenedDeckPath() != null ? settings.getLastOpenedDeckPath() : "");
 
         Button browseButton = new Button("Browse");
+        browseButton.setTooltip(new Tooltip("Select a deck file"));
         browseButton.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CardMaker Files", "*.cm"));
@@ -2572,6 +2645,7 @@ public class CardMakerController {
 
         TextField bleedField = new TextField(String.valueOf(currentTemplate.getBleedMm()));
         bleedField.setPrefWidth(50);
+        bleedField.setTooltip(new Tooltip("Extra margin around the card for printing (standard is 3mm)"));
 
         grid.add(new Label("Last Opened/Saved Deck:"), 0, 0);
         grid.add(pathField, 1, 0);

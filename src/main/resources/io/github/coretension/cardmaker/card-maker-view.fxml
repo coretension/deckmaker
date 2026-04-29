@@ -82,11 +82,17 @@
                     <tooltip><Tooltip text="Add Container"/></tooltip>
                 </Button>
                 <Separator/>
-                <ToggleButton fx:id="previewToolbarBtn" text="Preview" onAction="#handleTogglePreviewMode"/>
+                <ToggleButton fx:id="previewToolbarBtn" text="Preview" onAction="#handleTogglePreviewMode">
+                    <tooltip><Tooltip text="Toggle Preview Mode"/></tooltip>
+                </ToggleButton>
                 <Separator/>
-                <Button onAction="#handleZoomOut" text="-"/>
+                <Button onAction="#handleZoomOut" text="-">
+                    <tooltip><Tooltip text="Zoom Out"/></tooltip>
+                </Button>
                 <Label fx:id="zoomToolbarLabel" text="100%" minWidth="40" alignment="CENTER"/>
-                <Button onAction="#handleZoomIn" text="+"/>
+                <Button onAction="#handleZoomIn" text="+">
+                    <tooltip><Tooltip text="Zoom In"/></tooltip>
+                </Button>
             </ToolBar>
         </VBox>
     </top>
@@ -136,11 +142,17 @@
                 <Separator/>
                 <Label text="DATA PREVIEW" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
                 <HBox spacing="8" alignment="CENTER">
-                    <Button text="⏴" onAction="#handlePrevRecord" style="-fx-font-size: 1.1em;"/>
+                    <Button text="⏴" onAction="#handlePrevRecord" style="-fx-font-size: 1.1em;">
+                        <tooltip><Tooltip text="Previous Record"/></tooltip>
+                    </Button>
                     <Label fx:id="recordLabel" text="0 / 0" style="-fx-font-family: 'Monospaced';"/>
-                    <Button text="⏵" onAction="#handleNextRecord" style="-fx-font-size: 1.1em;"/>
+                    <Button text="⏵" onAction="#handleNextRecord" style="-fx-font-size: 1.1em;">
+                        <tooltip><Tooltip text="Next Record"/></tooltip>
+                    </Button>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <Button text="Details" onAction="#handleViewData"/>
+                    <Button text="Details" onAction="#handleViewData">
+                        <tooltip><Tooltip text="View CSV Data Details"/></tooltip>
+                    </Button>
                 </HBox>
             </VBox>
         </ScrollPane>

@@ -224,6 +224,7 @@ public class PrintService {
 
         // Add a printable area indicator for preview
         Pane printableArea = new Pane();
+        printableArea.setSnapToPixel(false);
         printableArea.setLayoutX(pageLayout.getLeftMargin());
         printableArea.setLayoutY(pageLayout.getTopMargin());
         printableArea.setPrefSize(pageLayout.getPrintableWidth(), pageLayout.getPrintableHeight());
@@ -251,9 +252,11 @@ public class PrintService {
             Map<String, String> record = csvData.isEmpty() ? null : csvData.get(cardIdx);
             
             Pane cardPane = new Pane();
+            cardPane.setSnapToPixel(false);
             cardPane.setPrefSize(cardW, cardH);
             cardPane.setMinSize(cardW, cardH);
             cardPane.setMaxSize(cardW, cardH);
+            cardPane.setClip(new javafx.scene.shape.Rectangle(cardW, cardH));
             
             // Add a thin dark 1-pixel border around the card to assist with cutting
             cardPane.setStyle("-fx-border-color: #333; -fx-border-width: 0.5; -fx-background-color: white;");
@@ -264,6 +267,7 @@ public class PrintService {
 
             // Render card content
             Pane contentPane = new Pane();
+            contentPane.setSnapToPixel(false);
             contentPane.setLayoutX(bleedPx);
             contentPane.setLayoutY(bleedPx);
             cardPane.getChildren().add(contentPane);
