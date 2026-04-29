@@ -79,6 +79,20 @@ public class DeckStorage {
         return mapper.readValue(json, clazz);
     }
 
+     /**
+     * Serializes a card template to JSON for in-memory snapshots.
+     */
+    public static String toJson(CardTemplate template) throws IOException {
+        return mapper.writeValueAsString(template);
+    }
+
+    /**
+     * Deserializes a card template from an in-memory JSON snapshot.
+     */
+    public static CardTemplate fromJson(String json) throws IOException {
+        return mapper.readValue(json, CardTemplate.class);
+    }
+
     /**
      * Returns the file where the temporary deck is stored, ensuring parent directories exist.
      */

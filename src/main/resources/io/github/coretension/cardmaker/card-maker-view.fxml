@@ -37,6 +37,9 @@
                     <MenuItem text="Reset Zoom" onAction="#handleResetZoom" accelerator="Shortcut+0"/>
                 </Menu>
                 <Menu text="Edit">
+                    <MenuItem fx:id="undoMenuItem" text="Undo" onAction="#handleUndo" accelerator="Shortcut+Z"/>
+                    <MenuItem fx:id="redoMenuItem" text="Redo" onAction="#handleRedo" accelerator="Shortcut+Y"/>
+                    <SeparatorMenuItem/>
                     <MenuItem text="Manage Icon Library" onAction="#handleManageIconLibrary"/>
                     <MenuItem text="Manage Font Library" onAction="#handleManageFontLibrary"/>
                 </Menu>

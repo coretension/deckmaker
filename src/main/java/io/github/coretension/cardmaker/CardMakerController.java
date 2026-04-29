@@ -48,13 +48,19 @@ public class CardMakerController {
     @FXML private ToggleButton previewToolbarBtn;
     @FXML private CheckMenuItem previewMenuItem;
     @FXML private CheckMenuItem proModeMenuItem;
+    @FXML private MenuItem undoMenuItem;
+    @FXML private MenuItem redoMenuItem;
     @FXML private Label sizeLabel;
     @FXML private Label cursorPosLabel;
     @FXML private Label coordinatesLabel;
     @FXML private Label statusLabel;
 
+    private static final int MAX_HISTORY_SIZE = 100;
+
     private final Map<CardElement, ChangeListener<Number>> xListeners = new HashMap<>();
     private final Map<CardElement, ChangeListener<Number>> yListeners = new HashMap<>();
+    private final Deque<String> undoHistory = new ArrayDeque<>();
+    private final Deque<String> redoHistory = new ArrayDeque<>();
 
     private CardTemplate currentTemplate = new CardTemplate();
     private List<Map<String, String>> csvData = new ArrayList<>();
@@ -71,6 +77,9 @@ public class CardMakerController {
     private CardElement copiedElement;
     private long lastCsvModificationTime = 0;
     private boolean isDirty = false;
+    private boolean restoringHistory = false;
+    private int historySuppressionDepth = 0;
+    private String lastHistorySnapshot;
     private Stage iconLibraryStage;
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
@@ -87,6 +96,7 @@ public class CardMakerController {
         setupCsvWatchTimeline();
         
         checkForRecovery();
+        resetHistory();
         
         elementTreeView.setCellFactory(tv -> {
             TreeCell<CardElement> cell = new TreeCell<>() {
@@ -1223,6 +1233,7 @@ public class CardMakerController {
 
         final Delta dragDelta = new Delta();
         handle.setOnMousePressed(mouseEvent -> {
+            beginHistoryCompoundEdit();
             dragDelta.x = mouseEvent.getSceneX();
             dragDelta.y = mouseEvent.getSceneY();
             mouseEvent.consume();
@@ -1284,6 +1295,11 @@ public class CardMakerController {
             mouseEvent.consume();
         });
 
+        handle.setOnMouseReleased(mouseEvent -> {
+            endHistoryCompoundEdit();
+            mouseEvent.consume();
+        });
+
         handle.setOnMouseClicked(javafx.scene.input.MouseEvent::consume);
 
         pane.getChildren().add(handle);
@@ -1295,6 +1311,7 @@ public class CardMakerController {
         final Node[] targetNode = new Node[1];
 
         node.setOnMousePressed(mouseEvent -> {
+            beginHistoryCompoundEdit();
             CardElement selected = getSelectedElement();
             // If a container is already selected and we clicked it or its child, 
             // keep dragging the container instead of selecting the child.
@@ -1361,6 +1378,11 @@ public class CardMakerController {
 
             activeEl.setX(newX);
             activeEl.setY(newY);
+            mouseEvent.consume();
+        });
+
+        node.setOnMouseReleased(mouseEvent -> {
+            endHistoryCompoundEdit();
             mouseEvent.consume();
         });
     }
@@ -1733,6 +1755,7 @@ public class CardMakerController {
         pathField.textProperty().addListener((obs, old, newVal) -> {
             iconMap.put(charStr, newVal == null ? "" : newVal);
             renderTemplate();
+            saveTempDeck();
         });
 
         Button browseBtn = new Button("...");
@@ -1760,6 +1783,7 @@ public class CardMakerController {
             iconMap.remove(charStr);
             container.getChildren().remove(row);
             renderTemplate();
+            saveTempDeck();
         });
 
         row.getChildren().addAll(label, pathField, browseBtn, removeBtn);
@@ -1777,12 +1801,18 @@ public class CardMakerController {
             currentTemplate = new CardTemplate();
             currentTemplate.setDimension(dimension);
             currentFile = null;
+            csvData = new ArrayList<>();
+            csvHeaders = new ArrayList<>();
+            currentRecordIndex = -1;
+            lastCsvModificationTime = 0;
             isDirty = false;
             setupTemplateListeners();
             updateCanvasSize();
+            updateRecordLabel();
             renderTemplate();
             updateTitleAndStatus();
             deleteTempDeck();
+            resetHistory();
         });
     }
 
@@ -1936,6 +1966,7 @@ public class CardMakerController {
                             newKeyField.clear();
                             renderTemplate();
                             updatePropertiesPane(getSelectedElement());
+                            saveTempDeck();
                         }
                     });
 
@@ -2051,6 +2082,7 @@ public class CardMakerController {
                     familyBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     HBox sizeBox = UIUtils.createSliderWithNumericField(fontEl.fontSizeProperty(), 8, 120);
@@ -2059,6 +2091,7 @@ public class CardMakerController {
                     fontEl.fontSizeProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     ComboBox<FontWeight> weightBox = new ComboBox<>(FXCollections.observableArrayList(FontWeight.values()));
@@ -2069,6 +2102,7 @@ public class CardMakerController {
                     weightBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     ComboBox<FontPosture> postureBox = new ComboBox<>(FXCollections.observableArrayList(FontPosture.values()));
@@ -2079,6 +2113,7 @@ public class CardMakerController {
                     postureBox.valueProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     ColorPicker colorPicker = new ColorPicker(Color.web(fontEl.getColor()));
@@ -2089,6 +2124,7 @@ public class CardMakerController {
                         fontEl.setColor(UIUtils.toHexString(colorPicker.getValue()));
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     HBox angleBox = UIUtils.createSliderWithNumericField(fontEl.angleProperty(), -360, 360);
@@ -2097,6 +2133,7 @@ public class CardMakerController {
                     fontEl.angleProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     HBox outlineWidthBox = UIUtils.createSliderWithNumericField(fontEl.outlineWidthProperty(), 0, 20);
@@ -2105,6 +2142,7 @@ public class CardMakerController {
                     fontEl.outlineWidthProperty().addListener((o, ov, nv) -> {
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     ColorPicker outlineColorPicker = new ColorPicker(Color.web(fontEl.getOutlineColor()));
@@ -2115,6 +2153,7 @@ public class CardMakerController {
                         fontEl.setOutlineColor(UIUtils.toHexString(outlineColorPicker.getValue()));
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
+                        saveTempDeck();
                     });
 
                     props.getChildren().addAll(
@@ -2818,6 +2857,152 @@ public class CardMakerController {
         }
     }
 
+    private void resetHistory() {
+        undoHistory.clear();
+        redoHistory.clear();
+        try {
+            lastHistorySnapshot = DeckStorage.toJson(currentTemplate);
+            undoHistory.addLast(lastHistorySnapshot);
+        } catch (IOException e) {
+            lastHistorySnapshot = null;
+            System.err.println("Failed to initialize undo history: " + e.getMessage());
+        }
+        updateHistoryControls();
+    }
+
+    private void recordHistorySnapshot() {
+        if (restoringHistory || historySuppressionDepth > 0) {
+            return;
+        }
+        try {
+            String snapshot = DeckStorage.toJson(currentTemplate);
+            if (Objects.equals(snapshot, lastHistorySnapshot)) {
+                return;
+            }
+            undoHistory.addLast(snapshot);
+            while (undoHistory.size() > MAX_HISTORY_SIZE) {
+                undoHistory.removeFirst();
+            }
+            redoHistory.clear();
+            lastHistorySnapshot = snapshot;
+            updateHistoryControls();
+        } catch (IOException e) {
+            System.err.println("Failed to record undo history: " + e.getMessage());
+        }
+    }
+
+    private void updateHistoryControls() {
+        if (undoMenuItem != null) {
+            undoMenuItem.setDisable(undoHistory.size() <= 1);
+        }
+        if (redoMenuItem != null) {
+            redoMenuItem.setDisable(redoHistory.isEmpty());
+        }
+    }
+
+    private void beginHistoryCompoundEdit() {
+        historySuppressionDepth++;
+    }
+
+    private void endHistoryCompoundEdit() {
+        if (historySuppressionDepth > 0) {
+            historySuppressionDepth--;
+        }
+        saveTempDeck();
+    }
+
+    @FXML
+    void handleUndo(ActionEvent event) {
+        if (undoHistory.size() <= 1) {
+            return;
+        }
+        String current = undoHistory.removeLast();
+        redoHistory.addLast(current);
+        String previous = undoHistory.peekLast();
+        if (previous != null) {
+            restoreHistorySnapshot(previous, "Undo");
+        }
+    }
+
+    @FXML
+    void handleRedo(ActionEvent event) {
+        if (redoHistory.isEmpty()) {
+            return;
+        }
+        String snapshot = redoHistory.removeLast();
+        undoHistory.addLast(snapshot);
+        restoreHistorySnapshot(snapshot, "Redo");
+    }
+
+    private void restoreHistorySnapshot(String snapshot, String statusMessage) {
+        List<Integer> selectedPath = getSelectedTreePath();
+        restoringHistory = true;
+        try {
+            CardTemplate template = DeckStorage.fromJson(snapshot);
+            closeTemplateEditorWindows();
+            applyTemplate(template);
+            selectTreePath(selectedPath);
+            isDirty = true;
+            lastHistorySnapshot = snapshot;
+            saveTempDeck();
+            updateTitleAndStatus(statusMessage);
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to restore history: " + e.getMessage());
+            alert.show();
+        } finally {
+            restoringHistory = false;
+            updateHistoryControls();
+        }
+    }
+
+    private List<Integer> getSelectedTreePath() {
+        TreeItem<CardElement> selected = elementTreeView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            return List.of();
+        }
+        LinkedList<Integer> path = new LinkedList<>();
+        TreeItem<CardElement> current = selected;
+        while (current.getParent() != null) {
+            TreeItem<CardElement> parent = current.getParent();
+            path.addFirst(parent.getChildren().indexOf(current));
+            current = parent;
+        }
+        return path;
+    }
+
+    private void selectTreePath(List<Integer> path) {
+        TreeItem<CardElement> item = elementTreeView.getRoot();
+        for (int index : path) {
+            if (item == null || index < 0 || index >= item.getChildren().size()) {
+                elementTreeView.getSelectionModel().clearSelection();
+                updatePropertiesPane(null);
+                highlightOnCanvas(null);
+                updateCoordinatesLabel(null);
+                return;
+            }
+            item = item.getChildren().get(index);
+        }
+        if (item != null && item.getValue() != null) {
+            elementTreeView.getSelectionModel().select(item);
+        } else {
+            elementTreeView.getSelectionModel().clearSelection();
+            updatePropertiesPane(null);
+            highlightOnCanvas(null);
+            updateCoordinatesLabel(null);
+        }
+    }
+
+    private void closeTemplateEditorWindows() {
+        if (iconLibraryStage != null) {
+            iconLibraryStage.close();
+            iconLibraryStage = null;
+        }
+        if (fontLibraryStage != null) {
+            fontLibraryStage.close();
+            fontLibraryStage = null;
+        }
+    }
+
     public void saveTempDeck() {
         if (!isDirty) {
             isDirty = true;
@@ -2825,6 +3010,7 @@ public class CardMakerController {
         }
         try {
             DeckStorage.save(currentTemplate, DeckStorage.getTempFile());
+            recordHistorySnapshot();
         } catch (IOException e) {
             System.err.println("Failed to save temp deck: " + e.getMessage());
         }
@@ -2907,6 +3093,12 @@ public class CardMakerController {
         updateCanvasSize();
         if (template.getCsvPath() != null) {
             loadCsvFile(new File(template.getCsvPath()));
+        } else {
+            csvData = new ArrayList<>();
+            csvHeaders = new ArrayList<>();
+            currentRecordIndex = -1;
+            lastCsvModificationTime = 0;
+            updateRecordLabel();
         }
         renderTemplate();
     }
@@ -2971,6 +3163,7 @@ public class CardMakerController {
             applyTemplate(template);
             updateTitleAndStatus();
             deleteTempDeck();
+            resetHistory();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setContentText("Error loading deck: " + e.getMessage());
