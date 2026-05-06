@@ -133,7 +133,7 @@ public class DataMerger {
         for (int i = 0; i < textNodes.getLength(); i++) {
             Node node = textNodes.item(i);
             if ("p".equals(node.getLocalName())) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append("\n");
                 }
                 sb.append(node.getTextContent());

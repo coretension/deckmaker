@@ -81,6 +81,8 @@ public class CardMakerController {
     private Stage iconLibraryStage;
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
+    private static final double SNAP_THRESHOLD_PX = 6.0;
+    private final List<Node> activeSnapGuides = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -1310,6 +1312,7 @@ public class CardMakerController {
 
         node.setOnMousePressed(mouseEvent -> {
             beginHistoryCompoundEdit();
+            clearSnapGuides();
             CardElement selected = getSelectedElement();
             // If a container is already selected and we clicked it or its child, 
             // keep dragging the container instead of selecting the child.
@@ -1345,18 +1348,10 @@ public class CardMakerController {
             
             double cardWidth = currentTemplate.getDimension().getWidthPx();
             double cardHeight = currentTemplate.getDimension().getHeightPx();
-            
-            double width = activeNode.getLayoutBounds().getWidth();
-            double height = activeNode.getLayoutBounds().getHeight();
-            
-            if (activeNode instanceof Text text) {
-                // Special handling for Text nodes to get accurate visual bounds
-                Text temp = new Text(text.getText());
-                temp.setFont(text.getFont());
-                temp.setStrokeWidth(text.getStrokeWidth());
-                width = temp.getLayoutBounds().getWidth();
-                height = temp.getLayoutBounds().getHeight();
-            }
+
+            double[] size = getNodeVisualSize(activeNode);
+            double width = size[0];
+            double height = size[1];
             
             // Constrain X position
             if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
@@ -1374,16 +1369,179 @@ public class CardMakerController {
                 }
             }
 
+            List<ElementBounds> snapTargets = collectSnapTargets(activeEl);
+            SnapResult xSnap = calculateSnap(newX, width, cardWidth, true, snapTargets);
+            SnapResult ySnap = calculateSnap(newY, height, cardHeight, false, snapTargets);
+
+            newX = xSnap.position();
+            newY = ySnap.position();
+
+            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
+                newX = Math.max(0, newX);
+                if (newX + width > cardWidth) {
+                    newX = Math.max(0, cardWidth - width);
+                }
+
+                newY = Math.max(0, newY);
+                if (newY + height > cardHeight) {
+                    newY = Math.max(0, cardHeight - height);
+                }
+            }
+
+            showSnapGuides(xSnap, ySnap);
+
             activeEl.setX(newX);
             activeEl.setY(newY);
             mouseEvent.consume();
         });
 
         node.setOnMouseReleased(mouseEvent -> {
+            clearSnapGuides();
             endHistoryCompoundEdit();
             mouseEvent.consume();
         });
     }
+
+    private double[] getNodeVisualSize(Node node) {
+        double width = node.getLayoutBounds().getWidth();
+        double height = node.getLayoutBounds().getHeight();
+
+        if (node instanceof Text text) {
+            Text temp = new Text(text.getText());
+            temp.setFont(text.getFont());
+            temp.setStrokeWidth(text.getStrokeWidth());
+            width = temp.getLayoutBounds().getWidth();
+            height = temp.getLayoutBounds().getHeight();
+        }
+
+        return new double[]{width, height};
+    }
+
+    private List<ElementBounds> collectSnapTargets(CardElement draggedElement) {
+        List<ElementBounds> targets = new ArrayList<>();
+        collectSnapTargetsRecursive(cardCanvas, draggedElement, targets);
+        return targets;
+    }
+
+    private void collectSnapTargetsRecursive(Pane pane, CardElement draggedElement, List<ElementBounds> targets) {
+        for (Node child : pane.getChildren()) {
+            Object maybeElement = child.getProperties().get("cardElement");
+            if (maybeElement instanceof CardElement other && other != draggedElement) {
+                targets.add(createElementBounds(other, child));
+            }
+            if (child instanceof Pane childPane) {
+                collectSnapTargetsRecursive(childPane, draggedElement, targets);
+            }
+        }
+    }
+
+    private ElementBounds createElementBounds(CardElement element, Node node) {
+        double[] size = getNodeVisualSize(node);
+        double width = size[0];
+        double height = size[1];
+
+        double left = element.getX();
+        double top = element.getY();
+        double right = left + width;
+        double bottom = top + height;
+        double centerX = left + width / 2.0;
+        double centerY = top + height / 2.0;
+
+        return new ElementBounds(left, centerX, right, top, centerY, bottom);
+    }
+
+    private SnapResult calculateSnap(double currentPosition,
+                                     double size,
+                                     double cardSize,
+                                     boolean isX,
+                                     List<ElementBounds> targets) {
+        double leftOrTop = currentPosition;
+        double center = currentPosition + size / 2.0;
+        double rightOrBottom = currentPosition + size;
+
+        double bestDistance = SNAP_THRESHOLD_PX + 1;
+        double bestAdjustedPosition = currentPosition;
+        Double guide = null;
+
+        List<Double> axisTargets = new ArrayList<>();
+        axisTargets.add(0.0);
+        axisTargets.add(cardSize / 2.0);
+        axisTargets.add(cardSize);
+
+        for (ElementBounds bounds : targets) {
+            if (isX) {
+                axisTargets.add(bounds.min());
+                axisTargets.add(bounds.center());
+                axisTargets.add(bounds.max());
+            } else {
+                axisTargets.add(bounds.crossMin());
+                axisTargets.add(bounds.crossCenter());
+                axisTargets.add(bounds.crossMax());
+            }
+        }
+
+        for (double target : axisTargets) {
+            double[] anchors = new double[]{leftOrTop, center, rightOrBottom};
+            for (double anchor : anchors) {
+                double distance = Math.abs(target - anchor);
+                if (distance <= SNAP_THRESHOLD_PX && distance < bestDistance) {
+                    bestDistance = distance;
+                    bestAdjustedPosition = currentPosition + (target - anchor);
+                    guide = target;
+                }
+            }
+        }
+
+        return new SnapResult(bestAdjustedPosition, guide, isX);
+    }
+
+    private void showSnapGuides(SnapResult xSnap, SnapResult ySnap) {
+        clearSnapGuides();
+        double bleedPx = professionalMode ? currentTemplate.getBleedMm() * (CardDimension.getDpi() / 25.4) : 0;
+        double cardWidth = currentTemplate.getDimension().getWidthPx();
+        double cardHeight = currentTemplate.getDimension().getHeightPx();
+
+        if (xSnap.guide() != null) {
+            javafx.scene.shape.Line vertical = new javafx.scene.shape.Line(
+                    bleedPx + xSnap.guide(), bleedPx,
+                    bleedPx + xSnap.guide(), bleedPx + cardHeight
+            );
+            vertical.setStroke(Color.DODGERBLUE);
+            vertical.setStrokeWidth(1.0);
+            vertical.getStrokeDashArray().setAll(4.0, 4.0);
+            vertical.setMouseTransparent(true);
+            cardCanvas.getChildren().add(vertical);
+            activeSnapGuides.add(vertical);
+        }
+
+        if (ySnap.guide() != null) {
+            javafx.scene.shape.Line horizontal = new javafx.scene.shape.Line(
+                    bleedPx, bleedPx + ySnap.guide(),
+                    bleedPx + cardWidth, bleedPx + ySnap.guide()
+            );
+            horizontal.setStroke(Color.DODGERBLUE);
+            horizontal.setStrokeWidth(1.0);
+            horizontal.getStrokeDashArray().setAll(4.0, 4.0);
+            horizontal.setMouseTransparent(true);
+            cardCanvas.getChildren().add(horizontal);
+            activeSnapGuides.add(horizontal);
+        }
+
+        activeSnapGuides.forEach(Node::toFront);
+    }
+
+    private void clearSnapGuides() {
+        if (activeSnapGuides.isEmpty()) {
+            return;
+        }
+        cardCanvas.getChildren().removeAll(activeSnapGuides);
+        activeSnapGuides.clear();
+    }
+
+    private record ElementBounds(double min, double center, double max,
+                                 double crossMin, double crossCenter, double crossMax) { }
+
+    private record SnapResult(double position, Double guide, boolean xAxis) { }
 
     private static class Delta { double x, y; }
 
