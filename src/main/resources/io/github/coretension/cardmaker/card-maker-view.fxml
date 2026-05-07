@@ -135,13 +135,13 @@
         </StackPane>
     </center>
     <right>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="280" style="-fx-background-color: #f4f4f4; -fx-border-color: #ccc; -fx-border-width: 0 0 0 1;">
-            <VBox spacing="15">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="340" style="-fx-background-color: #f4f4f4; -fx-border-color: #ccc; -fx-border-width: 0 0 0 1;">
+            <VBox spacing="10">
                 <padding>
-                    <Insets top="10" right="15" bottom="10" left="15"/>
+                    <Insets top="10" right="12" bottom="10" left="12"/>
                 </padding>
                 <Label text="PROPERTIES" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
-                <VBox fx:id="propertiesPane" spacing="12"/>
+                <VBox fx:id="propertiesPane" spacing="8"/>
                 <Separator/>
                 <Label text="DATA PREVIEW" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
                 <HBox spacing="8" alignment="CENTER">

@@ -37,9 +37,7 @@ public class CardMakerApplication extends Application {
             controller.saveSettings();
         });
         
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            controller.saveSettings();
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(controller::saveSettings));
         
         stage.show();
     }

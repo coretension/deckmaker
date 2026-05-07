@@ -1343,55 +1343,17 @@ public class CardMakerController {
             CardElement activeEl = targetEl[0];
             Node activeNode = targetNode[0];
 
-            double newX = mouseEvent.getSceneX() + dragDelta.x;
-            double newY = mouseEvent.getSceneY() + dragDelta.y;
-            
-            double cardWidth = currentTemplate.getDimension().getWidthPx();
-            double cardHeight = currentTemplate.getDimension().getHeightPx();
+            double requestedX = mouseEvent.getSceneX() + dragDelta.x;
+            double requestedY = mouseEvent.getSceneY() + dragDelta.y;
+            MovementDecision decision = evaluateMovementDecision(activeEl, activeNode, requestedX, requestedY);
 
-            double[] size = getNodeVisualSize(activeNode);
-            double width = size[0];
-            double height = size[1];
-            
-            // Constrain X position
-            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
-                newX = Math.max(0, newX);
-                if (newX + width > cardWidth) {
-                    newX = Math.max(0, cardWidth - width);
-                }
+            if (decision.applied()) {
+                showSnapGuides(decision.xSnap(), decision.ySnap());
+                activeEl.setX(decision.x());
+                activeEl.setY(decision.y());
+            } else {
+                clearSnapGuides();
             }
-            
-            // Constrain Y position
-            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
-                newY = Math.max(0, newY);
-                if (newY + height > cardHeight) {
-                    newY = Math.max(0, cardHeight - height);
-                }
-            }
-
-            List<ElementBounds> snapTargets = collectSnapTargets(activeEl);
-            SnapResult xSnap = calculateSnap(newX, width, cardWidth, true, snapTargets);
-            SnapResult ySnap = calculateSnap(newY, height, cardHeight, false, snapTargets);
-
-            newX = xSnap.position();
-            newY = ySnap.position();
-
-            if (!(activeEl instanceof ImageElement ie && ie.isAllowOverflow())) {
-                newX = Math.max(0, newX);
-                if (newX + width > cardWidth) {
-                    newX = Math.max(0, cardWidth - width);
-                }
-
-                newY = Math.max(0, newY);
-                if (newY + height > cardHeight) {
-                    newY = Math.max(0, cardHeight - height);
-                }
-            }
-
-            showSnapGuides(xSnap, ySnap);
-
-            activeEl.setX(newX);
-            activeEl.setY(newY);
             mouseEvent.consume();
         });
 
@@ -1415,6 +1377,64 @@ public class CardMakerController {
         }
 
         return new double[]{width, height};
+    }
+
+    private MovementDecision evaluateMovementDecision(CardElement activeEl,
+                                                      Node activeNode,
+                                                      double requestedX,
+                                                      double requestedY) {
+        double cardWidth = currentTemplate.getDimension().getWidthPx();
+        double cardHeight = currentTemplate.getDimension().getHeightPx();
+
+        double[] size = getNodeVisualSize(activeNode);
+        double width = size[0];
+        double height = size[1];
+
+        double[] constrainedPosition = constrainPositionForElement(activeEl, requestedX, requestedY, width, height, cardWidth, cardHeight);
+        double constrainedX = constrainedPosition[0];
+        double constrainedY = constrainedPosition[1];
+
+        List<ElementBounds> snapTargets = collectSnapTargets(activeEl);
+        SnapResult xSnap = calculateSnap(constrainedX, width, cardWidth, true, snapTargets);
+        SnapResult ySnap = calculateSnap(constrainedY, height, cardHeight, false, snapTargets);
+
+        double snappedX = xSnap.position();
+        double snappedY = ySnap.position();
+
+        double[] finalPosition = constrainPositionForElement(activeEl, snappedX, snappedY, width, height, cardWidth, cardHeight);
+        double finalX = finalPosition[0];
+        double finalY = finalPosition[1];
+
+        boolean applied = hasMovementDelta(activeEl, finalX, finalY);
+        return new MovementDecision(finalX, finalY, xSnap, ySnap, applied);
+    }
+
+    private double[] constrainPositionForElement(CardElement element,
+                                                 double x,
+                                                 double y,
+                                                 double width,
+                                                 double height,
+                                                 double cardWidth,
+                                                 double cardHeight) {
+        if (element instanceof ImageElement ie && ie.isAllowOverflow()) {
+            return new double[]{x, y};
+        }
+
+        double constrainedX = Math.max(0, x);
+        if (constrainedX + width > cardWidth) {
+            constrainedX = Math.max(0, cardWidth - width);
+        }
+
+        double constrainedY = Math.max(0, y);
+        if (constrainedY + height > cardHeight) {
+            constrainedY = Math.max(0, cardHeight - height);
+        }
+
+        return new double[]{constrainedX, constrainedY};
+    }
+
+    private boolean hasMovementDelta(CardElement element, double newX, double newY) {
+        return Math.abs(element.getX() - newX) > 0.0001 || Math.abs(element.getY() - newY) > 0.0001;
     }
 
     private List<ElementBounds> collectSnapTargets(CardElement draggedElement) {
@@ -1543,6 +1563,8 @@ public class CardMakerController {
 
     private record SnapResult(double position, Double guide, boolean xAxis) { }
 
+    private record MovementDecision(double x, double y, SnapResult xSnap, SnapResult ySnap, boolean applied) { }
+
     private static class Delta { double x, y; }
 
     private boolean isUpdatingOtherAxis = false;
@@ -1568,9 +1590,7 @@ public class CardMakerController {
     }
 
     private void addSectionLabel(String text) {
-        Label label = new Label(text.toUpperCase());
-        label.setStyle("-fx-font-weight: bold; -fx-padding: 10 0 2 0; -fx-text-fill: #888; -fx-font-size: 0.85em; -fx-letter-spacing: 1px;");
-        propertiesPane.getChildren().add(label);
+        // Section headers intentionally omitted to keep element settings UI compact.
     }
 
     private void addProperty(String label, Node control) {
@@ -1578,8 +1598,15 @@ public class CardMakerController {
     }
 
     private void addProperty(String label, Node control, String tooltipText) {
+        addProperty(label, control, tooltipText, !(control instanceof TextArea));
+    }
+
+    private void addProperty(String label, Node control, String tooltipText, boolean compactRow) {
         Label l = new Label(label);
         l.setStyle("-fx-text-fill: #444; -fx-font-size: 0.9em;");
+        l.setMinWidth(110);
+        l.setPrefWidth(110);
+        l.setMaxWidth(110);
         if (tooltipText != null) {
             Tooltip tooltip = new Tooltip(tooltipText);
             l.setTooltip(tooltip);
@@ -1593,7 +1620,27 @@ public class CardMakerController {
                 }
             }
         }
-        propertiesPane.getChildren().add(l);
+
+        if (control instanceof Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+        }
+
+        if (compactRow) {
+            HBox row = new HBox(8, l, control);
+            row.setAlignment(Pos.CENTER_LEFT);
+            HBox.setHgrow(control, Priority.ALWAYS);
+            propertiesPane.getChildren().add(row);
+            return;
+        }
+
+        propertiesPane.getChildren().addAll(l, control);
+    }
+
+    private void addStandaloneControl(Control control, String tooltipText) {
+        if (tooltipText != null) {
+            control.setTooltip(new Tooltip(tooltipText));
+        }
+        control.setMaxWidth(Double.MAX_VALUE);
         propertiesPane.getChildren().add(control);
     }
 
@@ -1731,10 +1778,11 @@ public class CardMakerController {
                 renderTemplate();
             });
 
-            addProperty("Path (use {{header}} for merge)", new HBox(5, pathField, browseBtn), "Path to the image file. Use {{Header}} for dynamic paths.");
+            addProperty("Path ({{header}})", new HBox(5, pathField, browseBtn), "Path to the image file. Use {{Header}} for dynamic paths.");
             addProperty("Width", widthBox, "Width of the image in millimeters");
             addProperty("Height", heightBox, "Height of the image in millimeters");
-            propertiesPane.getChildren().addAll(lockAspectBox, allowOverflowBox);
+            addStandaloneControl(lockAspectBox, "Maintain the same proportions when resizing");
+            addStandaloneControl(allowOverflowBox, "If enabled, the element won't be clipped by its parent's bounds");
 
         } else if (el instanceof ContainerElement ce) {
             addSectionLabel("Dimensions");
@@ -1813,14 +1861,14 @@ public class CardMakerController {
 
             addProperty("Width", widthBox, "Width of the container in millimeters");
             addProperty("Height", heightBox, "Height of the container in millimeters");
-            propertiesPane.getChildren().add(lockAspectBox);
+            addStandaloneControl(lockAspectBox, "Maintain the same proportions when resizing");
             addProperty("Alpha", alphaBox, "Opacity level (0.0 = transparent, 1.0 = opaque)");
             addProperty("Color", colorPicker, "The fill color for this container");
             addProperty("Layout", layoutBox, "How children are arranged: POSITIONAL (manual), HORIZONTAL (row), VERTICAL (column), STACK (layered)");
             addProperty("H-Alignment", alignBox, "Horizontal alignment of children");
             addProperty("V-Alignment", vAlignBox, "Vertical alignment of children");
             addProperty("Spacing", spacingBox, "Space between children in HORIZONTAL or VERTICAL layouts");
-            propertiesPane.getChildren().add(lockedBox);
+            addStandaloneControl(lockedBox, "If enabled, children cannot be selected or moved on the canvas");
 
         } else if (el instanceof IconElement ice) {
             TextField valueField = new TextField(ice.getValue());
