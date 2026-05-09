@@ -2,7 +2,7 @@
 
 This project is a tool for creating and managing custom card game templates and data.
 
-![CardMaker Preview](resources/img_old.png)
+![CardMaker Preview](resources/img.png)
 
 ## How to Download and Run
 ### Windows
@@ -25,6 +25,11 @@ To run on macOS:
    - Clone the repository.
    - Run `./mvnw javafx:run` to run the application directly.
    - To build a native app image: `./mvnw package -Ddist=mac` (requires building on macOS).
+
+### Run the JAR Directly (All OS, Java Required)
+- If you have Java 21 or later installed, you can run the packaged JAR directly.
+- From the project root, run:
+  - `java -jar target/cardmaker-0.2.1-SNAPSHOT.jar`
 
 ## Documentation
 

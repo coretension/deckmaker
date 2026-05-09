@@ -4,7 +4,7 @@ Welcome to **CardMaker**, a powerful tool for designing custom card decks for ta
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Installation & Running
 
@@ -27,7 +27,7 @@ CardMaker is available as a standalone application or a runnable JAR.
 
 ---
 
-## 📊 Working with Data
+## Working with Data
 
 CardMaker's real power comes from its ability to merge external data into your designs.
 
@@ -41,7 +41,7 @@ You can insert data into text fields or conditions by using "tags" formatted lik
 
 ---
 
-## 🎨 Card Elements
+## Card Elements
 
 Add elements to your card via the **Insert** menu. All elements share common properties:
 - **Enabled:** Toggle whether an element is active and rendered on the card.
