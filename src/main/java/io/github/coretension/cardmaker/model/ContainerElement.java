@@ -7,7 +7,7 @@ import javafx.beans.property.*;
  * A parent element that provides layout capabilities for its children.
  * Supports various layout types and alignments.
  */
-public class ContainerElement extends ParentCardElement {
+public class   ContainerElement extends ParentCardElement {
     /** Defines how child elements are positioned within the container. */
     public enum LayoutType { POSITIONAL, FLOW, VERTICAL, HORIZONTAL, STACK }
     /** Defines the horizontal alignment of children within the container. */

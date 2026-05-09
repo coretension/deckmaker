@@ -4,6 +4,7 @@ import io.github.coretension.cardmaker.config.AppSettings;
 import io.github.coretension.cardmaker.model.*;
 import io.github.coretension.cardmaker.persistence.DeckStorage;
 import io.github.coretension.cardmaker.service.*;
+import javafx.application.Platform;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -49,6 +50,7 @@ public class CardMakerController {
     @FXML private StackPane canvasContainer;
     @FXML private Label zoomLabel;
     @FXML private Label zoomToolbarLabel;
+    @FXML private SplitPane mainSplitPane;
     @FXML private ToggleButton previewToolbarBtn;
     @FXML private CheckMenuItem previewMenuItem;
     @FXML private CheckMenuItem proModeMenuItem;
@@ -87,6 +89,8 @@ public class CardMakerController {
     @FXML
     public void initialize() {
         loadSettings();
+        applySavedPanelDividerPositions();
+        setupPanelDividerPersistence();
         setupTemplateListeners();
         updateCanvasSize();
         updateSizeLabel();
@@ -107,7 +111,10 @@ public class CardMakerController {
                     if (empty || item == null) {
                         setText(null);
                         setGraphic(null);
+                        setContentDisplay(ContentDisplay.TEXT_ONLY);
                         setContextMenu(null);
+                        opacityProperty().unbind();
+                        setOpacity(1.0);
                     } else {
                         final String icon = switch (item) {
                             case TextElement te -> "T";
@@ -131,9 +138,56 @@ public class CardMakerController {
                             case ConditionElement ce2 -> "Condition";
                             default -> "Element";
                         }));
-                        setGraphic(iconLabel);
 
-                        textProperty().bind(item.nameProperty());
+                        Label nameLabel = new Label();
+                        nameLabel.textProperty().bind(item.nameProperty());
+                        nameLabel.setMaxWidth(Double.MAX_VALUE);
+
+                        Region spacer = new Region();
+                        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                        ToggleButton visibilityBtn = new ToggleButton();
+                        visibilityBtn.setFocusTraversable(false);
+                        visibilityBtn.setPrefWidth(28);
+                        visibilityBtn.setSelected(item.isEnabled());
+                        visibilityBtn.setText(item.isEnabled() ? "👁" : "🚫");
+                        visibilityBtn.setTooltip(new Tooltip(item.isEnabled() ? "Hide Element" : "Show Element"));
+                        visibilityBtn.setOnAction(e -> {
+                            item.setEnabled(visibilityBtn.isSelected());
+                            visibilityBtn.setText(item.isEnabled() ? "👁" : "🚫");
+                            visibilityBtn.setTooltip(new Tooltip(item.isEnabled() ? "Hide Element" : "Show Element"));
+                            renderTemplate();
+                            e.consume();
+                        });
+
+                        Node lockNode;
+                        if (item instanceof ContainerElement ce) {
+                            ToggleButton lockBtn = new ToggleButton();
+                            lockBtn.setFocusTraversable(false);
+                            lockBtn.setPrefWidth(28);
+                            lockBtn.setSelected(ce.isLocked());
+                            lockBtn.setText(ce.isLocked() ? "🔒" : "🔓");
+                            lockBtn.setTooltip(new Tooltip(ce.isLocked() ? "Unlock Container" : "Lock Container"));
+                            lockBtn.setOnAction(e -> {
+                                ce.setLocked(lockBtn.isSelected());
+                                lockBtn.setText(ce.isLocked() ? "🔒" : "🔓");
+                                lockBtn.setTooltip(new Tooltip(ce.isLocked() ? "Unlock Container" : "Lock Container"));
+                                renderTemplate();
+                                e.consume();
+                            });
+                            lockNode = lockBtn;
+                        } else {
+                            Label placeholder = new Label("");
+                            placeholder.setMinWidth(28);
+                            placeholder.setPrefWidth(28);
+                            lockNode = placeholder;
+                        }
+
+                        HBox row = new HBox(6, iconLabel, nameLabel, spacer, visibilityBtn, lockNode);
+                        row.setAlignment(Pos.CENTER_LEFT);
+                        setGraphic(row);
+                        setText(null);
+                        setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
                         
                         opacityProperty().bind(item.enabledProperty().map(e -> e ? 1.0 : 0.5));
                         
@@ -326,6 +380,15 @@ public class CardMakerController {
                     selectElement(selected);
                     event.consume();
                 }
+            } else if (event.isControlDown() && event.getCode() == KeyCode.D) {
+                handleDuplicateElement(null);
+                event.consume();
+            } else if (!event.isControlDown() && !event.isAltDown() && !event.isMetaDown() && event.getCode() == KeyCode.SPACE) {
+                if (previewToolbarBtn != null) {
+                    previewToolbarBtn.setSelected(!previewToolbarBtn.isSelected());
+                    handleTogglePreviewMode(new ActionEvent(previewToolbarBtn, previewToolbarBtn));
+                }
+                event.consume();
             }
         });
 
@@ -1650,6 +1713,7 @@ public class CardMakerController {
         if (el == null) return;
 
         addSectionLabel("Element Settings");
+        addSelectionPathRow(el);
         TextField nameField = new TextField(el.getName());
         nameField.textProperty().bindBidirectional(el.nameProperty());
         addProperty("Name", nameField, "The name of this element in the element tree");
@@ -2540,6 +2604,30 @@ public class CardMakerController {
         }
     }
 
+    @FXML
+    void handleDuplicateElement(ActionEvent event) {
+        CardElement selected = getSelectedElement();
+        if (selected == null) return;
+
+        try {
+            CardElement newEl = DeckStorage.clone(selected, CardElement.class);
+            newEl.setX(newEl.getX() + 10);
+            newEl.setY(newEl.getY() + 10);
+            ObservableList<CardElement> parentList = findParentList(selected);
+            if (parentList != null) {
+                newEl.setName(nextCopyName(selected.getName(), parentList));
+            }
+
+            if (parentList != null) {
+                int index = parentList.indexOf(selected);
+                parentList.add(index + 1, newEl);
+                selectElement(newEl);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to duplicate element: " + e.getMessage());
+        }
+    }
+
     private ObservableList<CardElement> findParentList(CardElement el) {
         if (currentTemplate.getElements().contains(el)) {
             return currentTemplate.getElements();
@@ -3206,9 +3294,50 @@ public class CardMakerController {
         }
     }
 
+    private void applySavedPanelDividerPositions() {
+        if (settings == null || mainSplitPane == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            if (mainSplitPane.getDividers().size() < 2) {
+                return;
+            }
+            double left = settings.getLeftPanelDividerPosition();
+            double right = settings.getRightPanelDividerPosition();
+            if (left <= 0 || left >= 1 || right <= 0 || right >= 1 || left >= right) {
+                left = 0.22;
+                right = 0.78;
+            }
+            mainSplitPane.setDividerPositions(left, right);
+        });
+    }
+
+    private void setupPanelDividerPersistence() {
+        if (mainSplitPane == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            if (mainSplitPane.getDividers().size() < 2) {
+                return;
+            }
+            mainSplitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
+                settings.setLeftPanelDividerPosition(newVal.doubleValue());
+                saveSettings();
+            });
+            mainSplitPane.getDividers().get(1).positionProperty().addListener((obs, oldVal, newVal) -> {
+                settings.setRightPanelDividerPosition(newVal.doubleValue());
+                saveSettings();
+            });
+        });
+    }
+
     public void saveSettings() {
         try {
             settings.setProfessionalMode(professionalMode);
+            if (mainSplitPane != null && mainSplitPane.getDividers().size() >= 2) {
+                settings.setLeftPanelDividerPosition(mainSplitPane.getDividers().get(0).getPosition());
+                settings.setRightPanelDividerPosition(mainSplitPane.getDividers().get(1).getPosition());
+            }
             DeckStorage.saveSettings(settings);
         } catch (IOException e) {
             System.err.println("Failed to save settings: " + e.getMessage());
@@ -3358,16 +3487,68 @@ public class CardMakerController {
         if (isDirty) {
             deckName += " (modified)";
         }
-        
+        String modeBadges = buildModeBadges();
+
         if (temporaryMessage != null) {
-            statusLabel.setText(temporaryMessage);
+            statusLabel.setText(temporaryMessage + modeBadges);
             // Optionally clear after some time, but for now we'll just show it
         } else {
-            statusLabel.setText("Deck: " + deckName + (csvData.isEmpty() ? "" : " | CSV: " + csvData.size() + " records"));
+            statusLabel.setText("Deck: " + deckName + (csvData.isEmpty() ? "" : " | CSV: " + csvData.size() + " records") + modeBadges);
         }
 
         if (propertiesPane.getScene() != null && propertiesPane.getScene().getWindow() instanceof Stage stage) {
             stage.setTitle("CardMaker - " + (currentFile != null ? currentFile.getName() : "Unsaved") + (isDirty ? "*" : ""));
         }
+    }
+
+    private String buildModeBadges() {
+        List<String> badges = new ArrayList<>();
+        if (professionalMode) badges.add("PRO");
+        if (previewMode) badges.add("PREVIEW");
+        if (showClippedContent) badges.add("CLIPPED");
+        return badges.isEmpty() ? "" : " | [" + String.join("] [", badges) + "]";
+    }
+
+    private void addSelectionPathRow(CardElement el) {
+        TextField selectionPathField = new TextField(buildSelectionPath(el));
+        selectionPathField.setEditable(false);
+        selectionPathField.setFocusTraversable(false);
+        addProperty("Selection Path", selectionPathField, "Hierarchy path from root to this element");
+    }
+
+    private String buildSelectionPath(CardElement el) {
+        LinkedList<String> path = new LinkedList<>();
+        path.addFirst(el.getName());
+
+        ParentCardElement parent = findParentElement(el);
+        while (parent != null) {
+            path.addFirst(parent.getName());
+            parent = findParentElement(parent);
+        }
+
+        path.addFirst("Root");
+        return String.join(" > ", path);
+    }
+
+    private String nextCopyName(String baseName, ObservableList<CardElement> siblings) {
+        String copyName = baseName + " (Copy)";
+        if (!containsElementName(siblings, copyName)) {
+            return copyName;
+        }
+
+        int copyNumber = 2;
+        while (containsElementName(siblings, baseName + " (Copy " + copyNumber + ")")) {
+            copyNumber++;
+        }
+        return baseName + " (Copy " + copyNumber + ")";
+    }
+
+    private boolean containsElementName(ObservableList<CardElement> elements, String name) {
+        for (CardElement element : elements) {
+            if (name.equals(element.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

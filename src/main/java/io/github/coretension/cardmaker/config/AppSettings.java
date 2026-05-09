@@ -8,6 +8,10 @@ public class AppSettings {
     private String lastOpenedDeckPath;
     /** Whether professional mode (bleed and outline) is enabled. */
     private boolean professionalMode = false;
+    /** Divider position between element tree and canvas panel. */
+    private double leftPanelDividerPosition = 0.22;
+    /** Divider position between canvas and properties panel. */
+    private double rightPanelDividerPosition = 0.78;
 
     /** @return the last opened deck path */
     public String getLastOpenedDeckPath() {
@@ -27,5 +31,25 @@ public class AppSettings {
     /** @param professionalMode the professional mode state to set */
     public void setProfessionalMode(boolean professionalMode) {
         this.professionalMode = professionalMode;
+    }
+
+    /** @return divider position between element tree and canvas panel */
+    public double getLeftPanelDividerPosition() {
+        return leftPanelDividerPosition;
+    }
+
+    /** @param leftPanelDividerPosition divider position between element tree and canvas panel */
+    public void setLeftPanelDividerPosition(double leftPanelDividerPosition) {
+        this.leftPanelDividerPosition = leftPanelDividerPosition;
+    }
+
+    /** @return divider position between canvas and properties panel */
+    public double getRightPanelDividerPosition() {
+        return rightPanelDividerPosition;
+    }
+
+    /** @param rightPanelDividerPosition divider position between canvas and properties panel */
+    public void setRightPanelDividerPosition(double rightPanelDividerPosition) {
+        this.rightPanelDividerPosition = rightPanelDividerPosition;
     }
 }
