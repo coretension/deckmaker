@@ -1,7 +1,10 @@
 package io.github.coretension.cardmaker.model;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import java.util.Collection;
 
 /**
  * Represents a template for a card, including its dimensions, elements, and resources.
@@ -32,6 +35,11 @@ public class CardTemplate {
 
     /** @return the observable list of card elements */
     public ObservableList<CardElement> getElements() { return elements; }
+
+    @JsonSetter("elements")
+    public void setElements(Collection<CardElement> elements) {
+        this.elements.setAll(elements == null ? FXCollections.observableArrayList() : elements);
+    }
 
     /** @return the path to the CSV data file */
     public String getCsvPath() { return csvPath; }

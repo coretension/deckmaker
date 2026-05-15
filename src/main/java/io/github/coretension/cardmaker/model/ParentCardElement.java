@@ -1,7 +1,10 @@
 package io.github.coretension.cardmaker.model;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+
+import java.util.Collection;
 
 /**
  * Abstract base class for card elements that can contain other card elements as children.
@@ -29,5 +32,10 @@ public abstract class ParentCardElement extends CardElement {
      */
     public ObservableList<CardElement> getChildren() {
         return children;
+    }
+
+    @JsonSetter("children")
+    public void setChildren(Collection<CardElement> children) {
+        this.children.setAll(children == null ? FXCollections.observableArrayList() : children);
     }
 }
