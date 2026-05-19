@@ -150,19 +150,35 @@ public class CardMakerController {
                         Region spacer = new Region();
                         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                        ToggleButton visibilityBtn = new ToggleButton();
-                        visibilityBtn.setFocusTraversable(false);
-                        visibilityBtn.setPrefWidth(28);
-                        visibilityBtn.setSelected(item.isEnabled());
-                        visibilityBtn.setText(item.isEnabled() ? "👁" : "🚫");
-                        visibilityBtn.setTooltip(new Tooltip(item.isEnabled() ? "Hide Element" : "Show Element"));
-                        visibilityBtn.setOnAction(e -> {
-                            item.setEnabled(visibilityBtn.isSelected());
+                        boolean lockedByAncestorContainer = isLockedByAncestorContainer(getTreeItem());
+                        boolean hiddenByAncestorContainer = isHiddenByAncestorContainer(getTreeItem());
+                        boolean appearsDisabled = !item.isEnabled() || lockedByAncestorContainer || hiddenByAncestorContainer;
+
+                        Node visibilityNode;
+                        if (hiddenByAncestorContainer) {
+                            Label inheritedHiddenLabel = new Label("🚫");
+                            inheritedHiddenLabel.setMinWidth(28);
+                            inheritedHiddenLabel.setPrefWidth(28);
+                            inheritedHiddenLabel.setAlignment(Pos.CENTER);
+                            inheritedHiddenLabel.setTooltip(new Tooltip("Hidden while parent container is hidden"));
+                            visibilityNode = inheritedHiddenLabel;
+                        } else {
+                            ToggleButton visibilityBtn = new ToggleButton();
+                            visibilityBtn.setFocusTraversable(false);
+                            visibilityBtn.setPrefWidth(28);
+                            visibilityBtn.setSelected(item.isEnabled());
                             visibilityBtn.setText(item.isEnabled() ? "👁" : "🚫");
                             visibilityBtn.setTooltip(new Tooltip(item.isEnabled() ? "Hide Element" : "Show Element"));
-                            renderTemplate();
-                            e.consume();
-                        });
+                            visibilityBtn.setOnAction(e -> {
+                                item.setEnabled(visibilityBtn.isSelected());
+                                visibilityBtn.setText(item.isEnabled() ? "👁" : "🚫");
+                                visibilityBtn.setTooltip(new Tooltip(item.isEnabled() ? "Hide Element" : "Show Element"));
+                                elementTreeView.refresh();
+                                renderTemplate();
+                                e.consume();
+                            });
+                            visibilityNode = visibilityBtn;
+                        }
 
                         Node lockNode;
                         if (item instanceof ContainerElement ce) {
@@ -176,10 +192,18 @@ public class CardMakerController {
                                 ce.setLocked(lockBtn.isSelected());
                                 lockBtn.setText(ce.isLocked() ? "🔒" : "🔓");
                                 lockBtn.setTooltip(new Tooltip(ce.isLocked() ? "Unlock Container" : "Lock Container"));
+                                elementTreeView.refresh();
                                 renderTemplate();
                                 e.consume();
                             });
                             lockNode = lockBtn;
+                        } else if (lockedByAncestorContainer) {
+                            Label inheritedLockLabel = new Label("⛔");
+                            inheritedLockLabel.setMinWidth(28);
+                            inheritedLockLabel.setPrefWidth(28);
+                            inheritedLockLabel.setAlignment(Pos.CENTER);
+                            inheritedLockLabel.setTooltip(new Tooltip("Non-selectable while parent container is locked"));
+                            lockNode = inheritedLockLabel;
                         } else {
                             Label placeholder = new Label("");
                             placeholder.setMinWidth(28);
@@ -187,19 +211,21 @@ public class CardMakerController {
                             lockNode = placeholder;
                         }
 
-                        HBox row = new HBox(6, iconLabel, nameLabel, spacer, visibilityBtn, lockNode);
+                        HBox row = new HBox(6, iconLabel, nameLabel, spacer, visibilityNode, lockNode);
                         row.setAlignment(Pos.CENTER_LEFT);
+                        row.setDisable(lockedByAncestorContainer);
                         setGraphic(row);
                         setText(null);
                         setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
                         
-                        opacityProperty().bind(item.enabledProperty().map(e -> e ? 1.0 : 0.5));
+                        setOpacity(appearsDisabled ? 0.5 : 1.0);
                         
                         ContextMenu contextMenu = new ContextMenu();
                         MenuItem enableDisableItem = new MenuItem();
                         enableDisableItem.textProperty().bind(item.enabledProperty().map(e -> e ? "Disable" : "Enable"));
                         enableDisableItem.setOnAction(e -> {
                             item.setEnabled(!item.isEnabled());
+                            elementTreeView.refresh();
                             renderTemplate();
                         });
 
@@ -224,6 +250,7 @@ public class CardMakerController {
                             lockUnlockItem.textProperty().bind(ce.lockedProperty().map(l -> l ? "Unlock Container" : "Lock Container"));
                             lockUnlockItem.setOnAction(e -> {
                                 ce.setLocked(!ce.isLocked());
+                                elementTreeView.refresh();
                                 renderTemplate();
                             });
                         }
@@ -520,6 +547,41 @@ public class CardMakerController {
             for (CardElement child : pe.getChildren()) {
                 if (isDescendant(child, potentialDescendant)) return true;
             }
+        }
+        return false;
+    }
+
+    private boolean isLockedByAncestorContainer(TreeItem<CardElement> item) {
+        TreeItem<CardElement> current = item == null ? null : item.getParent();
+        while (current != null) {
+            CardElement currentValue = current.getValue();
+            if (currentValue instanceof ContainerElement ce && ce.isLocked()) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private ContainerElement findNearestLockedAncestorContainer(CardElement element) {
+        ParentCardElement parent = findParentElement(element);
+        while (parent != null) {
+            if (parent instanceof ContainerElement container && container.isLocked()) {
+                return container;
+            }
+            parent = findParentElement(parent);
+        }
+        return null;
+    }
+
+    private boolean isHiddenByAncestorContainer(TreeItem<CardElement> item) {
+        TreeItem<CardElement> current = item == null ? null : item.getParent();
+        while (current != null) {
+            CardElement currentValue = current.getValue();
+            if (currentValue instanceof ContainerElement ce && !ce.isEnabled()) {
+                return true;
+            }
+            current = current.getParent();
         }
         return false;
     }
@@ -1380,13 +1442,19 @@ public class CardMakerController {
         node.setOnMousePressed(mouseEvent -> {
             beginHistoryCompoundEdit();
             clearSnapGuides();
+            ContainerElement lockedAncestor = findNearestLockedAncestorContainer(el);
+            if (lockedAncestor != null) {
+                targetEl[0] = lockedAncestor;
+                targetNode[0] = findNodeForElement(cardCanvas, lockedAncestor);
+                selectElement(lockedAncestor);
+            }
             CardElement selected = getSelectedElement();
             // If a container is already selected and we clicked it or its child, 
             // keep dragging the container instead of selecting the child.
-            if (selected instanceof ContainerElement ce && isDescendant(ce, el)) {
+            if (targetEl[0] == null && selected instanceof ContainerElement ce && isDescendant(ce, el)) {
                 targetEl[0] = ce;
                 targetNode[0] = findNodeForElement(cardCanvas, ce);
-            } else {
+            } else if (targetEl[0] == null) {
                 targetEl[0] = el;
                 targetNode[0] = node;
                 // Normal selection behavior
@@ -3401,10 +3469,19 @@ public class CardMakerController {
     }
 
     private void applyTemplate(CardTemplate template) {
+        closeTemplateEditorWindows();
+        clearActiveListeners();
+        copiedElement = null;
+        elementTreeView.getSelectionModel().clearSelection();
+        updatePropertiesPane(null);
+        highlightOnCanvas(null);
+        updateCoordinatesLabel(null);
+
         this.currentTemplate = template;
         setupTemplateListeners();
         updateCanvasSize();
         if (template.getCsvPath() != null) {
+            currentRecordIndex = 0;
             loadCsvFile(new File(template.getCsvPath()));
         } else {
             csvData = new ArrayList<>();

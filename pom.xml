@@ -7,7 +7,7 @@
     <groupId>io.github.coretension</groupId>
     <artifactId>cardmaker</artifactId>
     <version>0.2.1-SNAPSHOT</version>
-    <name>cardmaker</name>
+    <name>deckmaker</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
