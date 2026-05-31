@@ -52,6 +52,9 @@
                     <MenuItem text="Add Container" onAction="#handleAddContainer"/>
                     <MenuItem text="Add Font Config" onAction="#handleAddFont"/>
                 </Menu>
+                <Menu text="Help">
+                    <MenuItem text="Controls &amp; Actions" onAction="#handleShowControlsHelp"/>
+                </Menu>
             </MenuBar>
             <ToolBar>
                 <Button onAction="#handleNewDeck">

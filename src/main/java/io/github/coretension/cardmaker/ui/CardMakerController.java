@@ -81,7 +81,11 @@ public class CardMakerController {
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
     private static final double SNAP_THRESHOLD_PX = 6.0;
+    private static final double MIN_ZOOM_LEVEL = 0.1;
+    private static final double MAX_ZOOM_LEVEL = 8.0;
+    private static final int MAX_RECENT_COLORS = 10;
     private final List<Node> activeSnapGuides = new ArrayList<>();
+    private final ObservableList<Color> recentColors = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
@@ -231,18 +235,18 @@ public class CardMakerController {
 
                         MenuItem copyItem = new MenuItem("Copy");
                         copyItem.setAccelerator(new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN));
-                        copyItem.setOnAction(e -> handleCopyElement(null));
+                        copyItem.setOnAction(e -> handleCopyElement());
 
                         MenuItem pasteItem = new MenuItem("Paste");
                         pasteItem.setAccelerator(new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN));
-                        pasteItem.setOnAction(e -> handlePasteElement(null));
+                        pasteItem.setOnAction(e -> handlePasteElement());
                         pasteItem.setDisable(copiedElement == null);
 
                         MenuItem deleteItem = new MenuItem("Delete");
                         deleteItem.setAccelerator(new KeyCodeCombination(KeyCode.DELETE));
                         deleteItem.setOnAction(e -> {
                             elementTreeView.getSelectionModel().select(getTreeItem());
-                            handleDeleteElement(null);
+                            handleDeleteElement();
                         });
 
                         MenuItem lockUnlockItem = new MenuItem();
@@ -1779,6 +1783,23 @@ public class CardMakerController {
         propertiesPane.getChildren().add(control);
     }
 
+    private void configureColorPicker(ColorPicker picker) {
+        picker.setStyle("-fx-color-label-visible: true;");
+        picker.setMaxWidth(Double.MAX_VALUE);
+        picker.getCustomColors().setAll(recentColors);
+    }
+
+    private void rememberRecentColor(Color color) {
+        if (color == null) {
+            return;
+        }
+        recentColors.remove(color);
+        recentColors.add(0, color);
+        if (recentColors.size() > MAX_RECENT_COLORS) {
+            recentColors.remove(MAX_RECENT_COLORS, recentColors.size());
+        }
+    }
+
     private void updatePropertiesPane(CardElement el) {
         clearActiveListeners();
         propertiesPane.getChildren().clear();
@@ -1823,11 +1844,12 @@ public class CardMakerController {
             addProperty("Size", sizeBox, "Adjust the font size in points");
 
             ColorPicker colorPicker = new ColorPicker(Color.web(te.getColor()));
-            colorPicker.setStyle("-fx-color-label-visible: true;");
-            colorPicker.setMaxWidth(Double.MAX_VALUE);
+            configureColorPicker(colorPicker);
             colorPicker.disableProperty().bind(isNotDefault);
             colorPicker.setOnAction(e -> {
-                te.setColor(UIUtils.toHexString(colorPicker.getValue()));
+                Color selectedColor = colorPicker.getValue();
+                te.setColor(UIUtils.toHexString(selectedColor));
+                rememberRecentColor(selectedColor);
                 renderTemplate();
             });
             addProperty("Color", colorPicker, "Choose the color for the text");
@@ -1949,15 +1971,16 @@ public class CardMakerController {
             addSectionLabel("Appearance");
             HBox alphaBox = UIUtils.createSliderWithNumericField(ce.alphaProperty(), 0.0, 1.0);
             ColorPicker colorPicker = new ColorPicker(Color.TRANSPARENT);
-            colorPicker.setStyle("-fx-color-label-visible: true;");
-            colorPicker.setMaxWidth(Double.MAX_VALUE);
+            configureColorPicker(colorPicker);
             try {
                 colorPicker.setValue(Color.web(ce.getBackgroundColor()));
             } catch (Exception e) {
                 // Ignore
             }
             colorPicker.setOnAction(e -> {
-                ce.setBackgroundColor(UIUtils.toHexString(colorPicker.getValue()));
+                Color selectedColor = colorPicker.getValue();
+                ce.setBackgroundColor(UIUtils.toHexString(selectedColor));
+                rememberRecentColor(selectedColor);
             });
 
             addSectionLabel("Layout");
@@ -2045,10 +2068,11 @@ public class CardMakerController {
 
             addManagedListener(fe.colorProperty(), (obs, old, newVal) -> renderTemplate());
             ColorPicker colorPicker = new ColorPicker(Color.web(fe.getColor()));
-            colorPicker.setStyle("-fx-color-label-visible: true;");
-            colorPicker.setMaxWidth(Double.MAX_VALUE);
+            configureColorPicker(colorPicker);
             colorPicker.setOnAction(e -> {
-                fe.setColor(UIUtils.toHexString(colorPicker.getValue()));
+                Color selectedColor = colorPicker.getValue();
+                fe.setColor(UIUtils.toHexString(selectedColor));
+                rememberRecentColor(selectedColor);
                 renderTemplate();
             });
 
@@ -2059,10 +2083,11 @@ public class CardMakerController {
             addManagedListener(fe.outlineWidthProperty(), (obs, old, newVal) -> renderTemplate());
 
             ColorPicker outlineColorPicker = new ColorPicker(Color.web(fe.getOutlineColor()));
-            outlineColorPicker.setStyle("-fx-color-label-visible: true;");
-            outlineColorPicker.setMaxWidth(Double.MAX_VALUE);
+            configureColorPicker(outlineColorPicker);
             outlineColorPicker.setOnAction(e -> {
-                fe.setOutlineColor(UIUtils.toHexString(outlineColorPicker.getValue()));
+                Color selectedColor = outlineColorPicker.getValue();
+                fe.setOutlineColor(UIUtils.toHexString(selectedColor));
+                rememberRecentColor(selectedColor);
                 renderTemplate();
             });
 
@@ -2203,32 +2228,32 @@ public class CardMakerController {
     }
 
     @FXML
-    void handleAddText(ActionEvent event) {
+    void handleAddText() {
         addElement(new TextElement());
     }
 
     @FXML
-    void handleAddImage(ActionEvent event) {
+    void handleAddImage() {
         addElement(new ImageElement());
     }
 
     @FXML
-    void handleAddContainer(ActionEvent event) {
+    void handleAddContainer() {
         addElement(new ContainerElement());
     }
 
     @FXML
-    void handleAddFont(ActionEvent event) {
+    void handleAddFont() {
         addElement(new FontElement());
     }
 
     @FXML
-    void handleAddIcon(ActionEvent event) {
+    void handleAddIcon() {
         addElement(new IconElement());
     }
 
     @FXML
-    void handleAddCondition(ActionEvent event) {
+    void handleAddCondition() {
         addElement(new ConditionElement());
     }
 
@@ -2457,11 +2482,12 @@ public class CardMakerController {
                     });
 
                     ColorPicker colorPicker = new ColorPicker(Color.web(fontEl.getColor()));
-                    colorPicker.setStyle("-fx-color-label-visible: true;");
-                    colorPicker.setMaxWidth(Double.MAX_VALUE);
+                    configureColorPicker(colorPicker);
                     colorPicker.setTooltip(new Tooltip("Choose the color for the text"));
                     colorPicker.setOnAction(ce -> {
-                        fontEl.setColor(UIUtils.toHexString(colorPicker.getValue()));
+                        Color selectedColor = colorPicker.getValue();
+                        fontEl.setColor(UIUtils.toHexString(selectedColor));
+                        rememberRecentColor(selectedColor);
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
                         saveTempDeck();
@@ -2486,11 +2512,12 @@ public class CardMakerController {
                     });
 
                     ColorPicker outlineColorPicker = new ColorPicker(Color.web(fontEl.getOutlineColor()));
-                    outlineColorPicker.setStyle("-fx-color-label-visible: true;");
-                    outlineColorPicker.setMaxWidth(Double.MAX_VALUE);
+                    configureColorPicker(outlineColorPicker);
                     outlineColorPicker.setTooltip(new Tooltip("Color of the text outline"));
                     outlineColorPicker.setOnAction(ce -> {
-                        fontEl.setOutlineColor(UIUtils.toHexString(outlineColorPicker.getValue()));
+                        Color selectedColor = outlineColorPicker.getValue();
+                        fontEl.setOutlineColor(UIUtils.toHexString(selectedColor));
+                        rememberRecentColor(selectedColor);
                         renderTemplate();
                         updatePropertiesPane(getSelectedElement());
                         saveTempDeck();
@@ -2625,7 +2652,7 @@ public class CardMakerController {
     }
 
     @FXML
-    void handleDeleteElement(ActionEvent event) {
+    void handleDeleteElement() {
         CardElement selected = getSelectedElement();
         if (selected != null) {
             ObservableList<CardElement> parentList = findParentList(selected);
@@ -2636,7 +2663,7 @@ public class CardMakerController {
     }
 
     @FXML
-    void handleCopyElement(ActionEvent event) {
+    void handleCopyElement() {
         CardElement selected = getSelectedElement();
         if (selected != null) {
             try {
@@ -2648,7 +2675,7 @@ public class CardMakerController {
     }
 
     @FXML
-    void handlePasteElement(ActionEvent event) {
+    void handlePasteElement() {
         if (copiedElement == null) return;
 
         try {
@@ -3082,6 +3109,31 @@ public class CardMakerController {
     }
 
     @FXML
+    void handleShowControlsHelp(ActionEvent event) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Keyboard Shortcuts");
+        alert.setHeaderText("Shortcuts Not Directly Shown in Menus");
+        alert.setResizable(true);
+        alert.getDialogPane().setPrefWidth(700);
+        alert.getDialogPane().setPrefHeight(460);
+        alert.getDialogPane().setContent(new ScrollPane(new Label("""
+                ELEMENT TREE SHORTCUTS
+                - Ctrl+Up: Move selected element up (or into/out of a container depending on position).
+                - Ctrl+Down: Move selected element down (or into/out of a container depending on position).
+                - Ctrl+D: Duplicate selected element while the tree is focused.
+
+                CONTEXT ACTION SHORTCUTS
+                - Ctrl+C: Copy selected element.
+                - Ctrl+V: Paste copied element.
+                - Delete: Delete selected element.
+
+                GLOBAL TOGGLE
+                - Space: Toggle Preview Mode when the element tree is focused.
+                """)));
+        alert.showAndWait();
+    }
+
+    @FXML
     void handleExit(ActionEvent event) {
         saveTempDeck();
         saveSettings();
@@ -3128,21 +3180,25 @@ public class CardMakerController {
     void handleZoomIn(ActionEvent event) {
         state.setZoomLevel(state.getZoomLevel() * 1.2);
         updateZoom();
+        saveSettings();
     }
 
     @FXML
     void handleZoomOut(ActionEvent event) {
         state.setZoomLevel(state.getZoomLevel() / 1.2);
         updateZoom();
+        saveSettings();
     }
 
     @FXML
     void handleResetZoom(ActionEvent event) {
         state.setZoomLevel(1.0);
         updateZoom();
+        saveSettings();
     }
 
     private void updateZoom() {
+        state.setZoomLevel(sanitizeZoomLevel(state.getZoomLevel()));
         cardCanvas.setScaleX(state.getZoomLevel());
         cardCanvas.setScaleY(state.getZoomLevel());
         String zoomText = String.format("%.0f%%", state.getZoomLevel() * 100);
@@ -3150,6 +3206,13 @@ public class CardMakerController {
         if (zoomToolbarLabel != null) {
             zoomToolbarLabel.setText(zoomText);
         }
+    }
+
+    private double sanitizeZoomLevel(double zoomLevel) {
+        if (!Double.isFinite(zoomLevel)) {
+            return 1.0;
+        }
+        return Math.max(MIN_ZOOM_LEVEL, Math.min(MAX_ZOOM_LEVEL, zoomLevel));
     }
 
     private void updateSizeLabel() {
@@ -3174,6 +3237,7 @@ public class CardMakerController {
                     state.setZoomLevel(state.getZoomLevel() / 1.1);
                 }
                 updateZoom();
+                saveSettings();
                 event.consume();
             }
         });
@@ -3356,13 +3420,18 @@ public class CardMakerController {
         try {
             settings = DeckStorage.loadSettings();
             state.setProfessionalMode(settings.isProfessionalMode());
+            state.setZoomLevel(sanitizeZoomLevel(settings.getZoomLevel()));
+            settings.setZoomLevel(state.getZoomLevel());
             if (proModeMenuItem != null) proModeMenuItem.setSelected(state.isProfessionalMode());
             if (settings.getLastOpenedDeckPath() != null) {
                 lastOpenedDirectory = new File(settings.getLastOpenedDeckPath()).getParentFile();
             }
+            updateZoom();
         } catch (IOException e) {
             System.err.println("Failed to load settings: " + e.getMessage());
             settings = new AppSettings();
+            state.setZoomLevel(1.0);
+            updateZoom();
         }
     }
 
@@ -3423,6 +3492,7 @@ public class CardMakerController {
     public void saveSettings() {
         try {
             settings.setProfessionalMode(state.isProfessionalMode());
+            settings.setZoomLevel(sanitizeZoomLevel(state.getZoomLevel()));
             if (mainSplitPane != null && mainSplitPane.getScene() != null) {
                 Window window = mainSplitPane.getScene().getWindow();
                 if (window instanceof Stage stage) {

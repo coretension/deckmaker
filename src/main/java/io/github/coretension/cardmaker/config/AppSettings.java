@@ -8,7 +8,7 @@ public class AppSettings {
     private String lastOpenedDeckPath;
     /** Whether professional mode (bleed and outline) is enabled. */
     private boolean professionalMode = false;
-    /** Divider position between element tree and canvas panel. */
+    /** Divider position between the element tree and canvas panel. */
     private double leftPanelDividerPosition = 0.22;
     /** Divider position between canvas and properties panel. */
     private double rightPanelDividerPosition = 0.78;
@@ -16,6 +16,8 @@ public class AppSettings {
     private double windowWidth = 1000;
     /** Main window height. */
     private double windowHeight = 700;
+    /** Canvas zoom level. */
+    private double zoomLevel = 1.0;
 
     /** @return the last opened deck path */
     public String getLastOpenedDeckPath() {
@@ -75,5 +77,15 @@ public class AppSettings {
     /** @param windowHeight main window height */
     public void setWindowHeight(double windowHeight) {
         this.windowHeight = windowHeight;
+    }
+
+    /** @return canvas zoom level */
+    public double getZoomLevel() {
+        return zoomLevel;
+    }
+
+    /** @param zoomLevel canvas zoom level */
+    public void setZoomLevel(double zoomLevel) {
+        this.zoomLevel = zoomLevel;
     }
 }
