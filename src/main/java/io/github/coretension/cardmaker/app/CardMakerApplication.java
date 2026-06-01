@@ -7,6 +7,7 @@ import io.github.coretension.cardmaker.ui.CardMakerController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
@@ -43,6 +44,9 @@ public class CardMakerApplication extends Application {
         CardMakerController controller = fxmlLoader.getController();
 
         stage.setTitle("Card Maker");
+        Image appIcon = new Image(CardMakerApplication.class.getResourceAsStream(
+                "/io/github/coretension/cardmaker/icons/app-icon.png"));
+        stage.getIcons().add(appIcon);
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
             controller.saveSettings();

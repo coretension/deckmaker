@@ -300,6 +300,8 @@
                                         <argument>io.github.coretension.cardmaker.app.Launcher</argument>
                                         <argument>--type</argument>
                                         <argument>app-image</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${project.basedir}/src/main/resources/io/github/coretension/cardmaker/icons/app-icon.ico</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist-win</argument>
                                     </arguments>
