@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.coretension</groupId>
-  <artifactId>cardmaker</artifactId>
-  <name>cardmaker</name>
+  <artifactId>deckmaker</artifactId>
+  <name>deckmaker</name>
   <version>0.2.1-SNAPSHOT</version>
   <build>
     <plugins>
@@ -135,11 +135,13 @@
                     <argument>--input</argument>
                     <argument>C:\Users\jason\git\cardmaker\target/dist-input</argument>
                     <argument>--main-jar</argument>
-                    <argument>cardmaker-0.2.1-SNAPSHOT.jar</argument>
+                    <argument>deckmaker-0.2.1-SNAPSHOT.jar</argument>
                     <argument>--main-class</argument>
                     <argument>io.github.coretension.cardmaker.app.Launcher</argument>
                     <argument>--type</argument>
-                    <argument>app-image</argument>
+                    <argument>exe</argument>
+                    <argument>--icon</argument>
+                    <argument>C:\Users\jason\git\cardmaker/src/main/resources/io/github/coretension/cardmaker/icons/app-icon.ico</argument>
                     <argument>--dest</argument>
                     <argument>C:\Users\jason\git\cardmaker\target/dist-win</argument>
                   </arguments>

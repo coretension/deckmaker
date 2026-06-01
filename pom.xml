@@ -299,7 +299,7 @@
                                         <argument>--main-class</argument>
                                         <argument>io.github.coretension.cardmaker.app.Launcher</argument>
                                         <argument>--type</argument>
-                                        <argument>app-image</argument>
+                                        <argument>exe</argument>
                                         <argument>--icon</argument>
                                         <argument>${project.basedir}/src/main/resources/io/github/coretension/cardmaker/icons/app-icon.ico</argument>
                                         <argument>--dest</argument>
