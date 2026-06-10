@@ -1,21 +1,21 @@
-# CardMaker
+# DeckMaker
 
 This project is a tool for creating and managing custom card game templates and data.
 
-![CardMaker Preview](resources/img.png)
+![DeckMaker Preview](resources/img.png)
 
 ## How to Download and Run
 ### Windows
-To get started with CardMaker on Windows, follow these steps:
+To get started with DeckMaker on Windows, follow these steps:
 
 1. **Download the Zip File**: 
-   - Go to the [Releases](https://github.com/coretension/cardmaker/releases) page (if applicable) or download the repository as a ZIP file.
+   - Go to the [Releases](https://github.com/coretension/deckmaker/releases) page (if applicable) or download the repository as a ZIP file.
    - Extract the contents of the ZIP file to a folder on your computer.
 
 2. **Run the Application**:
    - Navigate to the extracted folder.
-   - Look for the `cardmaker` directory.
-   - Run the `cardmaker.exe` (or use the provided batch file if available).
+   - Look for the `deckmaker` directory.
+   - Run the `deckmaker.exe` (or use the provided batch file if available).
    - Alternatively, if you have Maven installed, you can run `./mvnw javafx:run` from the root directory.
 
 ### macOS
@@ -29,11 +29,11 @@ To run on macOS:
 ### Run the JAR Directly (All OS, Java Required)
 - If you have Java 21 or later installed, you can run the packaged JAR directly.
 - From the project root, run:
-  - `java -jar target/cardmaker-0.2.1-SNAPSHOT.jar`
+  - `java -jar target/deckmaker-0.2.1-SNAPSHOT.jar`
 
 ## Documentation
 
-For a detailed guide on how to use CardMaker, please refer to our:
+For a detailed guide on how to use DeckMaker, please refer to our:
 - [User Guide](docs/User_Guide.md)
 
 ---

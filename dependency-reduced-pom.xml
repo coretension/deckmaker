@@ -26,7 +26,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>io.github.coretension.cardmaker.app.Launcher</mainClass>
+                  <mainClass>io.github.coretension.deckmaker.app.Launcher</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -41,7 +41,7 @@
           <execution>
             <id>default-cli</id>
             <configuration>
-              <mainClass>io.github.coretension.cardmaker.app.CardMakerApplication</mainClass>
+              <mainClass>io.github.coretension.deckmaker.app.DeckMakerApplication</mainClass>
               <launcher>app</launcher>
               <jlinkZipName>app</jlinkZipName>
               <jlinkImageName>app</jlinkImageName>
@@ -93,13 +93,13 @@
                   <executable>jpackage</executable>
                   <arguments>
                     <argument>--name</argument>
-                    <argument>cardmaker</argument>
+                    <argument>deckmaker</argument>
                     <argument>--input</argument>
                     <argument>${project.build.directory}/dist-input</argument>
                     <argument>--main-jar</argument>
                     <argument>${project.build.finalName}.jar</argument>
                     <argument>--main-class</argument>
-                    <argument>io.github.coretension.cardmaker.app.Launcher</argument>
+                    <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                     <argument>--type</argument>
                     <argument>app-image</argument>
                     <argument>--dest</argument>
@@ -131,19 +131,19 @@
                   <executable>jpackage</executable>
                   <arguments>
                     <argument>--name</argument>
-                    <argument>cardmaker</argument>
+                    <argument>deckmaker</argument>
                     <argument>--input</argument>
-                    <argument>C:\Users\jason\git\cardmaker\target/dist-input</argument>
+                    <argument>${project.build.directory}/dist-input</argument>
                     <argument>--main-jar</argument>
-                    <argument>deckmaker-0.2.1-SNAPSHOT.jar</argument>
+                    <argument>${project.build.finalName}.jar</argument>
                     <argument>--main-class</argument>
-                    <argument>io.github.coretension.cardmaker.app.Launcher</argument>
+                    <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                     <argument>--type</argument>
                     <argument>exe</argument>
                     <argument>--icon</argument>
-                    <argument>C:\Users\jason\git\cardmaker/src/main/resources/io/github/coretension/cardmaker/icons/app-icon.ico</argument>
+                    <argument>${project.basedir}/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.ico</argument>
                     <argument>--dest</argument>
-                    <argument>C:\Users\jason\git\cardmaker\target/dist-win</argument>
+                    <argument>${project.build.directory}/dist-win</argument>
                   </arguments>
                 </configuration>
               </execution>
@@ -171,13 +171,15 @@
                   <executable>jpackage</executable>
                   <arguments>
                     <argument>--name</argument>
-                    <argument>cardmaker</argument>
+                    <argument>deckmaker</argument>
+                    <argument>--app-version</argument>
+                    <argument>${jpackage.app.version}</argument>
                     <argument>--input</argument>
                     <argument>${project.build.directory}/dist-input</argument>
                     <argument>--main-jar</argument>
                     <argument>${project.build.finalName}.jar</argument>
                     <argument>--main-class</argument>
-                    <argument>io.github.coretension.cardmaker.app.Launcher</argument>
+                    <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                     <argument>--type</argument>
                     <argument>app-image</argument>
                     <argument>--dest</argument>
@@ -232,5 +234,6 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <junit.version>5.12.1</junit.version>
+    <jpackage.app.version>0.2.1</jpackage.app.version>
   </properties>
 </project>

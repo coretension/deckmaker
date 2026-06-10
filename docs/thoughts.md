@@ -1,6 +1,6 @@
 ### Assumptions
-- You want a **product/UX review** (not immediate implementation) focused on improving CardMaker for tabletop game designers while preserving current behavior.
-- I reviewed the current architecture and workflows primarily in `src/main/java/io/github/coretension/cardmaker/ui/CardMakerController.java`, `src/main/resources/io/github/coretension/cardmaker/card-maker-view.fxml`, `src/main/java/io/github/coretension/cardmaker/service/DataMerger.java`, `src/main/java/io/github/coretension/cardmaker/service/PrintService.java`, `src/main/java/io/github/coretension/cardmaker/service/PdfExportService.java`, and `docs/User_Guide.md`.
+- You want a **product/UX review** (not immediate implementation) focused on improving DeckMaker for tabletop game designers while preserving current behavior.
+- I reviewed the current architecture and workflows primarily in `src/main/java/io/github/coretension/deckmaker/ui/DeckMakerController.java`, `src/main/resources/io/github/coretension/deckmaker/deck-maker-view.fxml`, `src/main/java/io/github/coretension/deckmaker/service/DataMerger.java`, `src/main/java/io/github/coretension/deckmaker/service/PrintService.java`, `src/main/java/io/github/coretension/deckmaker/service/PdfExportService.java`, and `docs/User_Guide.md`.
 - Recommendations prioritize **low-risk, incremental** enhancements that fit the existing JavaFX + centralized-controller structure.
 
 ### Proposed Solution
@@ -15,17 +15,17 @@
 ### Code/Config Changes
 - **No code changes applied in this review pass** (analysis only).
 - If you want implementation next, I’d do it in this sequence:
-    - `src/main/java/io/github/coretension/cardmaker/ui/CardMakerController.java`
+    - `src/main/java/io/github/coretension/deckmaker/ui/DeckMakerController.java`
         - Add a non-blocking **Preflight Report** action used by `handleExportPdf`, `handlePrintDeck`, and `handleExportTts`.
         - Add lightweight tree filter/search and “focus selected on canvas” usability actions.
         - Add preset load/save hooks for print/export settings.
-    - `src/main/java/io/github/coretension/cardmaker/service/DataMerger.java`
+    - `src/main/java/io/github/coretension/deckmaker/service/DataMerger.java`
         - Add helper methods for unresolved `{{tag}}` detection and record-level validation summary.
-    - `src/main/java/io/github/coretension/cardmaker/service/PrintService.java`
+    - `src/main/java/io/github/coretension/deckmaker/service/PrintService.java`
         - Persist/reuse last-used print layout presets and expose safer defaults per card size.
-    - `src/main/java/io/github/coretension/cardmaker/service/PdfExportService.java`
+    - `src/main/java/io/github/coretension/deckmaker/service/PdfExportService.java`
         - Add explicit export profile options (draft/high quality/print) and warning text for color conversion limitations.
-    - `src/main/resources/io/github/coretension/cardmaker/card-maker-view.fxml`
+    - `src/main/resources/io/github/coretension/deckmaker/deck-maker-view.fxml`
         - Add menu/toolbar entry points: `Tools > Preflight`, `View > Element Search`, and preset selectors.
     - `docs/User_Guide.md`
         - Add a short “Production Checklist” section (bleed, unresolved tags, missing assets, export profile selection).
@@ -41,7 +41,7 @@
     - Service-level tests for preset serialization/deserialization and export option defaults.
 
 ### Risks & Edge Cases
-- `CardMakerController` is very large/centralized; adding too much logic directly there increases maintenance risk. Keep new features encapsulated in small helper/service classes.
+- `DeckMakerController` is very large/centralized; adding too much logic directly there increases maintenance risk. Keep new features encapsulated in small helper/service classes.
 - Preflight must not block legitimate advanced use (e.g., intentionally unresolved fields). Use warning levels, not hard errors.
 - Color pipeline expectations: current CMYK conversion in `PdfExportService` is formula-based and may not match professional ICC-managed workflows; message this clearly.
 - Deck portability edge case: relative vs absolute asset paths can still cause cross-machine failures; preflight should explicitly flag path type.

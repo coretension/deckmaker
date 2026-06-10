@@ -1,9 +1,9 @@
-# CardMaker: Designer Review & Improvement Plan
+# DeckMaker: Designer Review & Improvement Plan
 
-This document outlines a professional designer's evaluation of the CardMaker application and proposes a roadmap for further enhancing its features and usability.
+This document outlines a professional designer's evaluation of the DeckMaker application and proposes a roadmap for further enhancing its features and usability.
 
 ## 1. Executive Summary
-CardMaker is a robust tool for data-driven card design. Its core strengths lie in its powerful merging capabilities and flexible layout system (especially the "Professional Mode" with bleed zones). However, the current UI follows a functional but somewhat generic paradigm that can be optimized for a more fluid creative workflow.
+DeckMaker is a robust tool for data-driven card design. Its core strengths lie in its powerful merging capabilities and flexible layout system (especially the "Professional Mode" with bleed zones). However, the current UI follows a functional but somewhat generic paradigm that can be optimized for a more fluid creative workflow.
 
 ## 2. Completed Usability Improvements
 During this review, the following enhancements were implemented:
@@ -33,4 +33,4 @@ During this review, the following enhancements were implemented:
 3. **Color Swatches**: Add a "Recent Colors" or "Project Colors" palette to the ColorPicker for brand consistency.
 
 ## 5. Conclusion
-CardMaker has the potential to be a best-in-class tool for card designers. By focusing on the "small details" of the creative workflow—snapping, asset management, and rapid feedback—the application can transition from a functional tool to an inspiring creative environment.
+DeckMaker has the potential to be a best-in-class tool for card designers. By focusing on the "small details" of the creative workflow—snapping, asset management, and rapid feedback—the application can transition from a functional tool to an inspiring creative environment.

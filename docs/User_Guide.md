@@ -1,6 +1,6 @@
-# CardMaker User Guide
+# DeckMaker User Guide
 
-Welcome to **CardMaker**, a powerful tool for designing custom card decks for tabletop games, collectibles, or any other project requiring rapid card prototyping. CardMaker allows you to design a single template and automatically generate dozens or hundreds of unique cards using data from a spreadsheet.
+Welcome to **DeckMaker**, a powerful tool for designing custom card decks for tabletop games, collectibles, or any other project requiring rapid card prototyping. DeckMaker allows you to design a single template and automatically generate dozens or hundreds of unique cards using data from a spreadsheet.
 
 ---
 
@@ -8,16 +8,16 @@ Welcome to **CardMaker**, a powerful tool for designing custom card decks for ta
 
 ### Installation & Running
 
-CardMaker is available as a standalone application or a runnable JAR.
+DeckMaker is available as a standalone application or a runnable JAR.
 
-- **Windows:** Download and extract the `cardmaker` distribution. Run `cardmaker.exe` located in the `cardmaker` folder. No Java installation is required as it includes its own runtime.
-- **Linux:** Run the `cardmaker.sh` script. This requires Java 21 or higher to be installed on your system.
-- **Generic (JAR):** If you have the `cardmaker-1.0-SNAPSHOT.jar`, run it using `java -jar cardmaker-1.0-SNAPSHOT.jar`. This also requires Java 21+.
+- **Windows:** Download and extract the `deckmaker` distribution. Run `deckmaker.exe` located in the `deckmaker` folder. No Java installation is required as it includes its own runtime.
+- **Linux:** Run the `deckmaker.sh` script. This requires Java 21 or higher to be installed on your system.
+- **Generic (JAR):** If you have the `deckmaker-1.0-SNAPSHOT.jar`, run it using `java -jar deckmaker-1.0-SNAPSHOT.jar`. This also requires Java 21+.
 
 ### Creating and Opening Decks
 - **New Deck:** Go to `File > New Deck` to start a fresh project.
-- **Open Deck:** Use `File > Open Deck` to load an existing project (`.json` format).
-- **Save Deck:** Save your progress with `File > Save Deck` or `Save Deck As...`.
+- **Open Deck:** Use `File > Open Deck` to load an existing project (`.dm` format). Legacy `.cm` files are still supported for opening.
+- **Save Deck:** Save your progress with `File > Save Deck` or `Save Deck As...`. DeckMaker saves deck files with the `.dm` extension.
 
 ### The Interface
 - **Left Panel (Elements):** A tree view showing all the components on your card. You can reorder them by dragging or delete them using the **Del** button.
@@ -29,7 +29,7 @@ CardMaker is available as a standalone application or a runnable JAR.
 
 ## Working with Data
 
-CardMaker's real power comes from its ability to merge external data into your designs.
+DeckMaker's real power comes from its ability to merge external data into your designs.
 
 ### Loading Data
 - Go to `File > Load CSV` to import a `.csv` or `.ods` (OpenDocument Spreadsheet) file.
@@ -82,7 +82,7 @@ The **Condition** element allows you to show or hide parts of your card based on
 ### 🎭 Icons
 Icons allow you to display small graphics (like mana symbols or attribute icons) based on a character string.
 - Use the **Manage Icon Library** (under **Insert**) to map specific characters (e.g., "A", "B", "C") to image files.
-- In the **Icon Element**, set the "Value" (e.g., `{{Cost}}`). If `{{Cost}}` is "AAA", CardMaker will display the icon mapped to "A" three times in a row.
+- In the **Icon Element**, set the "Value" (e.g., `{{Cost}}`). If `{{Cost}}` is "AAA", DeckMaker will display the icon mapped to "A" three times in a row.
 
 ---
 
@@ -106,7 +106,7 @@ Manage reusable font styles via `Insert > Manage Font Library`. Create a named s
 
 ## 🛠️ Building from Source
 
-If you want to build CardMaker yourself, you will need **Java 21** (or higher) and **Maven** installed.
+If you want to build DeckMaker yourself, you will need **Java 21** (or higher) and **Maven** installed.
 
 ### Standard Build
 To compile and create the runnable shaded JAR:
