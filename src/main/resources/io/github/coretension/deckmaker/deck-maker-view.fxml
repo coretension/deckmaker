@@ -31,6 +31,8 @@
                     <CheckMenuItem fx:id="proModeMenuItem" text="Professional Mode" onAction="#handleToggleProfessionalMode" accelerator="Shortcut+L"/>
                     <CheckMenuItem fx:id="previewMenuItem" text="Preview Mode" onAction="#handleTogglePreviewMode" accelerator="Space"/>
                     <CheckMenuItem text="Show Clipped Content" onAction="#handleToggleShowClippedContent"/>
+                    <CheckMenuItem fx:id="snapMenuItem" text="Snap to Guides" selected="true" onAction="#handleToggleSnapToGuides"/>
+                    <CheckMenuItem fx:id="gridMenuItem" text="Show Grid" selected="true" onAction="#handleToggleGrid"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Zoom In" onAction="#handleZoomIn" accelerator="Shortcut+EQUALS"/>
                     <MenuItem text="Zoom Out" onAction="#handleZoomOut" accelerator="Shortcut+MINUS"/>
@@ -57,23 +59,14 @@
                 </Menu>
             </MenuBar>
             <ToolBar>
-                <Button onAction="#handleNewDeck">
+                <Button text="New" onAction="#handleNewDeck">
                     <tooltip><Tooltip text="New Deck"/></tooltip>
-                    <graphic>
-                        <Label text="📄" style="-fx-font-size: 1.2em;"/>
-                    </graphic>
                 </Button>
-                <Button onAction="#handleOpenDeck">
+                <Button text="Open" onAction="#handleOpenDeck">
                     <tooltip><Tooltip text="Open Deck"/></tooltip>
-                    <graphic>
-                        <Label text="📂" style="-fx-font-size: 1.2em;"/>
-                    </graphic>
                 </Button>
-                <Button onAction="#handleSaveDeck">
+                <Button text="Save" onAction="#handleSaveDeck">
                     <tooltip><Tooltip text="Save Deck"/></tooltip>
-                    <graphic>
-                        <Label text="💾" style="-fx-font-size: 1.2em;"/>
-                    </graphic>
                 </Button>
                 <Separator/>
                 <Button text="+Text" onAction="#handleAddText">
@@ -91,6 +84,12 @@
                 <Separator/>
                 <ToggleButton fx:id="previewToolbarBtn" text="Preview" onAction="#handleTogglePreviewMode">
                     <tooltip><Tooltip text="Toggle Preview Mode"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="snapToolbarBtn" text="Snap" selected="true" onAction="#handleToggleSnapToGuides">
+                    <tooltip><Tooltip text="Snap dragged elements to card and element guides"/></tooltip>
+                </ToggleButton>
+                <ToggleButton fx:id="gridToolbarBtn" text="Grid" selected="true" onAction="#handleToggleGrid">
+                    <tooltip><Tooltip text="Show the editor grid"/></tooltip>
                 </ToggleButton>
                 <Separator/>
                 <Button onAction="#handleZoomOut" text="-">
@@ -149,11 +148,11 @@
                         <Separator/>
                         <Label text="DATA PREVIEW" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
                         <HBox spacing="8" alignment="CENTER">
-                            <Button text="⏴" onAction="#handlePrevRecord" style="-fx-font-size: 1.1em;">
+                            <Button text="Prev" onAction="#handlePrevRecord" style="-fx-font-size: 1.1em;">
                                 <tooltip><Tooltip text="Previous Record"/></tooltip>
                             </Button>
                             <Label fx:id="recordLabel" text="0 / 0" style="-fx-font-family: 'Monospaced';"/>
-                            <Button text="⏵" onAction="#handleNextRecord" style="-fx-font-size: 1.1em;">
+                            <Button text="Next" onAction="#handleNextRecord" style="-fx-font-size: 1.1em;">
                                 <tooltip><Tooltip text="Next Record"/></tooltip>
                             </Button>
                             <Region HBox.hgrow="ALWAYS"/>

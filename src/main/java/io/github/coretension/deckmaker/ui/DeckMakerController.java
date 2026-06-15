@@ -18,6 +18,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -55,8 +56,12 @@ public class DeckMakerController {
     @FXML private Label zoomToolbarLabel;
     @FXML private SplitPane mainSplitPane;
     @FXML private ToggleButton previewToolbarBtn;
+    @FXML private ToggleButton snapToolbarBtn;
+    @FXML private ToggleButton gridToolbarBtn;
     @FXML private CheckMenuItem previewMenuItem;
     @FXML private CheckMenuItem proModeMenuItem;
+    @FXML private CheckMenuItem snapMenuItem;
+    @FXML private CheckMenuItem gridMenuItem;
     @FXML private MenuItem undoMenuItem;
     @FXML private MenuItem redoMenuItem;
     @FXML private Label sizeLabel;
@@ -83,6 +88,7 @@ public class DeckMakerController {
     private Stage fontLibraryStage;
     private Stage dataViewerStage;
     private static final double SNAP_THRESHOLD_PX = 6.0;
+    private static final double GRID_SPACING_MM = 5.0;
     private static final double MIN_ZOOM_LEVEL = 0.1;
     private static final double MAX_ZOOM_LEVEL = 8.0;
     private static final int MAX_RECENT_COLORS = 10;
@@ -105,6 +111,7 @@ public class DeckMakerController {
         updateCanvasSize();
         updateSizeLabel();
         setupZoomListeners();
+        setupCanvasInteractionShortcuts();
         updateTitleAndStatus();
         setupAutoSaveTimeline();
         setupCsvWatchTimeline();
@@ -128,12 +135,12 @@ public class DeckMakerController {
                     } else {
                         final String icon = switch (item) {
                             case TextElement te -> "T";
-                            case ImageElement ie -> "🖼";
-                            case IconElement ice -> "⭐";
-                            case ContainerElement ce -> "📦";
-                            case FontElement fe -> "🔤";
-                            case ConditionElement ce2 -> "❓";
-                            default -> "📄";
+                            case ImageElement ie -> "Img";
+                            case IconElement ice -> "*";
+                            case ContainerElement ce -> "Box";
+                            case FontElement fe -> "Aa";
+                            case ConditionElement ce2 -> "?";
+                            default -> "El";
                         };
                         
                         Label iconLabel = new Label(icon);
@@ -204,7 +211,7 @@ public class DeckMakerController {
                             });
                             lockNode = lockBtn;
                         } else if (lockedByAncestorContainer) {
-                            Label inheritedLockLabel = new Label("⛔");
+                            Label inheritedLockLabel = new Label("🔒");
                             inheritedLockLabel.setMinWidth(28);
                             inheritedLockLabel.setPrefWidth(28);
                             inheritedLockLabel.setAlignment(Pos.CENTER);
@@ -468,6 +475,9 @@ public class DeckMakerController {
             highlightOnCanvas(el);
             updateCoordinatesLabel(el);
         });
+
+        cardCanvas.setFocusTraversable(true);
+        cardCanvas.setOnMousePressed(event -> cardCanvas.requestFocus());
     }
 
     private void updateCoordinatesLabel(CardElement el) {
@@ -826,6 +836,10 @@ public class DeckMakerController {
         Pane contentPane = new Pane();
         contentPane.setLayoutX(bleedPx);
         contentPane.setLayoutY(bleedPx);
+
+        if (state.isShowGrid() && !state.isPreviewMode()) {
+            cardCanvas.getChildren().add(createGridOverlay(bleedPx));
+        }
         cardCanvas.getChildren().add(contentPane);
 
         renderElements(currentTemplate.getElements(), contentPane, currentRecord, null, ContainerElement.LayoutType.POSITIONAL, ContainerElement.Alignment.LEFT, false, false);
@@ -1446,6 +1460,7 @@ public class DeckMakerController {
         final Node[] targetNode = new Node[1];
 
         node.setOnMousePressed(mouseEvent -> {
+            cardCanvas.requestFocus();
             beginHistoryCompoundEdit();
             clearSnapGuides();
             ContainerElement lockedAncestor = findNearestLockedAncestorContainer(el);
@@ -1535,9 +1550,13 @@ public class DeckMakerController {
         double constrainedX = constrainedPosition[0];
         double constrainedY = constrainedPosition[1];
 
-        List<ElementBounds> snapTargets = collectSnapTargets(activeEl);
-        SnapResult xSnap = calculateSnap(constrainedX, width, cardWidth, true, snapTargets);
-        SnapResult ySnap = calculateSnap(constrainedY, height, cardHeight, false, snapTargets);
+        List<ElementBounds> snapTargets = state.isSnapToGuides() ? collectSnapTargets(activeEl) : List.of();
+        SnapResult xSnap = state.isSnapToGuides()
+                ? calculateSnap(constrainedX, width, cardWidth, true, snapTargets)
+                : new SnapResult(constrainedX, null, true);
+        SnapResult ySnap = state.isSnapToGuides()
+                ? calculateSnap(constrainedY, height, cardHeight, false, snapTargets)
+                : new SnapResult(constrainedY, null, false);
 
         double snappedX = xSnap.position();
         double snappedY = ySnap.position();
@@ -1576,6 +1595,95 @@ public class DeckMakerController {
 
     private boolean hasMovementDelta(CardElement element, double newX, double newY) {
         return Math.abs(element.getX() - newX) > 0.0001 || Math.abs(element.getY() - newY) > 0.0001;
+    }
+
+    private Pane createGridOverlay(double bleedPx) {
+        double cardWidth = currentTemplate.getDimension().getWidthPx();
+        double cardHeight = currentTemplate.getDimension().getHeightPx();
+        double spacingPx = GRID_SPACING_MM * (CardDimension.getDpi() / 25.4);
+
+        Pane grid = new Pane();
+        grid.setMouseTransparent(true);
+        grid.setLayoutX(bleedPx);
+        grid.setLayoutY(bleedPx);
+        grid.setMinSize(cardWidth, cardHeight);
+        grid.setPrefSize(cardWidth, cardHeight);
+        grid.setMaxSize(cardWidth, cardHeight);
+
+        for (double x = spacingPx; x < cardWidth; x += spacingPx) {
+            javafx.scene.shape.Line line = new javafx.scene.shape.Line(x, 0, x, cardHeight);
+            styleGridLine(line);
+            grid.getChildren().add(line);
+        }
+        for (double y = spacingPx; y < cardHeight; y += spacingPx) {
+            javafx.scene.shape.Line line = new javafx.scene.shape.Line(0, y, cardWidth, y);
+            styleGridLine(line);
+            grid.getChildren().add(line);
+        }
+
+        return grid;
+    }
+
+    private void styleGridLine(javafx.scene.shape.Line line) {
+        line.setStroke(Color.web("#e6e6e6"));
+        line.setStrokeWidth(0.5);
+        line.setMouseTransparent(true);
+    }
+
+    private void setupCanvasInteractionShortcuts() {
+        cardCanvas.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.isControlDown() || event.isShortcutDown() || event.isAltDown() || event.isMetaDown()) {
+                return;
+            }
+            double step = event.isShiftDown() ? 10.0 : 1.0;
+            boolean handled = switch (event.getCode()) {
+                case LEFT -> nudgeSelectedElement(-step, 0);
+                case RIGHT -> nudgeSelectedElement(step, 0);
+                case UP -> nudgeSelectedElement(0, -step);
+                case DOWN -> nudgeSelectedElement(0, step);
+                default -> false;
+            };
+            if (handled) {
+                event.consume();
+            }
+        });
+    }
+
+    private boolean nudgeSelectedElement(double deltaX, double deltaY) {
+        CardElement selected = getSelectedElement();
+        if (selected == null || state.isPreviewMode() || findNearestLockedAncestorContainer(selected) != null) {
+            return false;
+        }
+
+        Node node = findNodeForElement(cardCanvas, selected);
+        if (node == null) {
+            return false;
+        }
+
+        double[] size = getNodeVisualSize(node);
+        double cardWidth = currentTemplate.getDimension().getWidthPx();
+        double cardHeight = currentTemplate.getDimension().getHeightPx();
+        double[] constrained = constrainPositionForElement(
+                selected,
+                selected.getX() + deltaX,
+                selected.getY() + deltaY,
+                size[0],
+                size[1],
+                cardWidth,
+                cardHeight
+        );
+
+        if (!hasMovementDelta(selected, constrained[0], constrained[1])) {
+            return false;
+        }
+
+        beginHistoryCompoundEdit();
+        selected.setX(constrained[0]);
+        selected.setY(constrained[1]);
+        endHistoryCompoundEdit();
+        renderTemplate();
+        selectElement(selected);
+        return true;
     }
 
     private List<ElementBounds> collectSnapTargets(CardElement draggedElement) {
@@ -1755,7 +1863,7 @@ public class DeckMakerController {
                 c.setTooltip(tooltip);
             } else if (control instanceof Pane p) {
                 for (Node child : p.getChildren()) {
-                    if (child instanceof Control c) {
+                    if (child instanceof Control c && c.getTooltip() == null) {
                         c.setTooltip(tooltip);
                     }
                 }
@@ -1802,6 +1910,39 @@ public class DeckMakerController {
         }
     }
 
+    private HBox createTaggableField(TextInputControl field) {
+        Button insertTagButton = new Button("Insert CSV Tag");
+        insertTagButton.setTooltip(new Tooltip("Insert a {{Header}} tag from the loaded CSV at the cursor"));
+        insertTagButton.setDisable(csvHeaders.isEmpty());
+
+        ContextMenu tagMenu = new ContextMenu();
+        if (csvHeaders.isEmpty()) {
+            MenuItem emptyItem = new MenuItem("Load a CSV to insert tags");
+            emptyItem.setDisable(true);
+            tagMenu.getItems().add(emptyItem);
+        } else {
+            for (String header : csvHeaders) {
+                String tag = "{{" + header + "}}";
+                MenuItem item = new MenuItem(tag);
+                item.setOnAction(event -> insertTagAtCaret(field, tag));
+                tagMenu.getItems().add(item);
+            }
+        }
+
+        insertTagButton.setOnAction(event -> tagMenu.show(insertTagButton, Side.BOTTOM, 0, 0));
+
+        HBox row = new HBox(5, field, insertTagButton);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        return row;
+    }
+
+    private void insertTagAtCaret(TextInputControl field, String tag) {
+        field.requestFocus();
+        int caret = Math.max(0, field.getCaretPosition());
+        field.insertText(caret, tag);
+        field.positionCaret(caret + tag.length());
+    }
+
     private void updatePropertiesPane(CardElement el) {
         clearActiveListeners();
         propertiesPane.getChildren().clear();
@@ -1818,7 +1959,7 @@ public class DeckMakerController {
             TextField conditionField = new TextField(ce.getCondition());
             conditionField.textProperty().bindBidirectional(ce.conditionProperty());
             addManagedListener(ce.conditionProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("CSV Column or Expression", conditionField, "CSV column name (e.g., 'type') or expression (e.g., 'level>5') to control visibility");
+            addProperty("CSV Column or Expression", createTaggableField(conditionField), "CSV column name (e.g., 'type') or expression (e.g., 'level>5') to control visibility");
         }
 
         if (el instanceof TextElement te) {
@@ -1827,7 +1968,7 @@ public class DeckMakerController {
             textArea.setPrefRowCount(3);
             textArea.textProperty().bindBidirectional(te.textProperty());
             addManagedListener(te.textProperty(), (obs, old, newVal) -> renderTemplate());
-            addProperty("Content (use {{header}} for merge)", textArea, "The text to display. Use {{Header}} to insert dynamic CSV data.");
+            addProperty("Content (use {{header}} for merge)", createTaggableField(textArea), "The text to display. Use {{Header}} to insert dynamic CSV data.", false);
 
             addSectionLabel("Appearance");
             ComboBox<String> fontConfigCombo = new ComboBox<>();
@@ -1886,7 +2027,7 @@ public class DeckMakerController {
                 renderTemplate();
             });
             
-            Button browseBtn = new Button("📁 Browse...");
+            Button browseBtn = new Button("Browse...");
             browseBtn.setMaxWidth(Double.MAX_VALUE);
             browseBtn.setOnAction(e -> {
                 FileChooser fileChooser = new FileChooser();
@@ -1938,7 +2079,9 @@ public class DeckMakerController {
                 renderTemplate();
             });
 
-            addProperty("Path ({{header}})", new HBox(5, pathField, browseBtn), "Path to the image file. Use {{Header}} for dynamic paths.");
+            HBox pathBox = createTaggableField(pathField);
+            pathBox.getChildren().add(browseBtn);
+            addProperty("Path ({{header}})", pathBox, "Path to the image file. Use {{Header}} for dynamic paths.");
             addProperty("Width", widthBox, "Width of the image in millimeters");
             addProperty("Height", heightBox, "Height of the image in millimeters");
             addStandaloneControl(lockAspectBox, "Maintain the same proportions when resizing");
@@ -2042,7 +2185,7 @@ public class DeckMakerController {
             mappingBox.getItems().addAll(currentTemplate.getIconLibrary().getMappings().keySet());
             mappingBox.valueProperty().bindBidirectional(ice.mappingNameProperty());
 
-            addProperty("Value (supports {{header}})", valueField, "The text to be replaced by icons based on mapping");
+            addProperty("Value (supports {{header}})", createTaggableField(valueField), "The text to be replaced by icons based on mapping");
             addProperty("Icon Mapping", mappingBox, "Select which icon mapping configuration to use");
             addSectionLabel("Icon Dimensions");
             addProperty("Width", iconWidthBox, "Width of each icon in millimeters");
@@ -2125,7 +2268,7 @@ public class DeckMakerController {
             saveTempDeck();
         });
 
-        Button browseBtn = new Button("📁");
+        Button browseBtn = new Button("Browse");
         browseBtn.setTooltip(new Tooltip("Browse for image"));
         browseBtn.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
@@ -2963,12 +3106,18 @@ public class DeckMakerController {
 
     @FXML
     void handlePrintDeck(ActionEvent event) {
+        if (!runPreflightBeforeProduction("Print Deck")) {
+            return;
+        }
         PrintService printService = new PrintService(currentTemplate, csvData, dataMerger, this);
         printService.showPrintDialog(propertiesPane.getScene().getWindow());
     }
 
     @FXML
     void handleExportPdf(ActionEvent event) {
+        if (!runPreflightBeforeProduction("Export PDF")) {
+            return;
+        }
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Export to PDF");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
@@ -2988,6 +3137,9 @@ public class DeckMakerController {
 
     @FXML
     void handleExportTts(ActionEvent event) {
+        if (!runPreflightBeforeProduction("Export TTS Deck Sheet")) {
+            return;
+        }
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Export to TTS Deck Sheet");
         fileChooser.getExtensionFilters().addAll(
@@ -3129,6 +3281,12 @@ public class DeckMakerController {
                 - Ctrl+V: Paste copied element.
                 - Delete: Delete selected element.
 
+                CANVAS SHORTCUTS
+                - Arrow Keys: Nudge the selected element by 1 px after focusing the canvas.
+                - Shift+Arrow Keys: Nudge the selected element by 10 px.
+                - Snap: Toggle guide snapping from the toolbar or View menu.
+                - Grid: Toggle the editor grid from the toolbar or View menu.
+
                 GLOBAL TOGGLE
                 - Space: Toggle Preview Mode when the element tree is focused.
                 """)));
@@ -3176,6 +3334,40 @@ public class DeckMakerController {
         state.setShowClippedContent(((CheckMenuItem) event.getSource()).isSelected());
         updateCanvasSize();
         renderTemplate();
+    }
+
+    @FXML
+    void handleToggleSnapToGuides(ActionEvent event) {
+        Object source = event.getSource();
+        if (source instanceof CheckMenuItem ci) {
+            state.setSnapToGuides(ci.isSelected());
+        } else if (source instanceof ToggleButton tb) {
+            state.setSnapToGuides(tb.isSelected());
+        }
+        syncSnapAndGridControls();
+        saveSettings();
+        updateTitleAndStatus();
+    }
+
+    @FXML
+    void handleToggleGrid(ActionEvent event) {
+        Object source = event.getSource();
+        if (source instanceof CheckMenuItem ci) {
+            state.setShowGrid(ci.isSelected());
+        } else if (source instanceof ToggleButton tb) {
+            state.setShowGrid(tb.isSelected());
+        }
+        syncSnapAndGridControls();
+        saveSettings();
+        renderTemplate();
+        updateTitleAndStatus();
+    }
+
+    private void syncSnapAndGridControls() {
+        if (snapMenuItem != null) snapMenuItem.setSelected(state.isSnapToGuides());
+        if (snapToolbarBtn != null) snapToolbarBtn.setSelected(state.isSnapToGuides());
+        if (gridMenuItem != null) gridMenuItem.setSelected(state.isShowGrid());
+        if (gridToolbarBtn != null) gridToolbarBtn.setSelected(state.isShowGrid());
     }
 
     @FXML
@@ -3419,9 +3611,12 @@ public class DeckMakerController {
         try {
             settings = DeckStorage.loadSettings();
             state.setProfessionalMode(settings.isProfessionalMode());
+            state.setSnapToGuides(settings.isSnapToGuides());
+            state.setShowGrid(settings.isShowGrid());
             state.setZoomLevel(sanitizeZoomLevel(settings.getZoomLevel()));
             settings.setZoomLevel(state.getZoomLevel());
             if (proModeMenuItem != null) proModeMenuItem.setSelected(state.isProfessionalMode());
+            syncSnapAndGridControls();
             if (settings.getLastOpenedDeckPath() != null) {
                 lastOpenedDirectory = new File(settings.getLastOpenedDeckPath()).getParentFile();
             }
@@ -3430,8 +3625,52 @@ public class DeckMakerController {
             System.err.println("Failed to load settings: " + e.getMessage());
             settings = new AppSettings();
             state.setZoomLevel(1.0);
+            syncSnapAndGridControls();
             updateZoom();
         }
+    }
+
+    private boolean runPreflightBeforeProduction(String actionName) {
+        PreflightService.PreflightReport report = new PreflightService(dataMerger)
+                .validate(currentTemplate, csvData, csvHeaders, currentFile);
+        if (report.isClean()) {
+            return true;
+        }
+
+        Alert alert = new Alert(report.hasErrors() ? Alert.AlertType.ERROR : Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Preflight Report");
+        alert.setHeaderText(report.hasErrors()
+                ? actionName + " blocked by preflight errors"
+                : actionName + " has preflight warnings");
+        alert.setResizable(true);
+        alert.getDialogPane().setPrefWidth(760);
+        alert.getDialogPane().setPrefHeight(480);
+
+        TextArea issueText = new TextArea(formatPreflightIssues(report));
+        issueText.setEditable(false);
+        issueText.setWrapText(true);
+        issueText.setPrefRowCount(18);
+        alert.getDialogPane().setContent(issueText);
+
+        if (report.hasErrors()) {
+            alert.getButtonTypes().setAll(ButtonType.OK);
+            alert.showAndWait();
+            return false;
+        }
+
+        ButtonType continueButton = new ButtonType("Continue Anyway", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(continueButton, ButtonType.CANCEL);
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == continueButton;
+    }
+
+    private String formatPreflightIssues(PreflightService.PreflightReport report) {
+        StringBuilder sb = new StringBuilder();
+        for (PreflightService.PreflightIssue issue : report.issues()) {
+            sb.append(issue.severity() == PreflightService.Severity.ERROR ? "ERROR: " : "WARNING: ");
+            sb.append(issue.message()).append(System.lineSeparator());
+        }
+        return sb.toString();
     }
 
     private void applySavedPanelDividerPositions() {
@@ -3491,6 +3730,8 @@ public class DeckMakerController {
     public void saveSettings() {
         try {
             settings.setProfessionalMode(state.isProfessionalMode());
+            settings.setSnapToGuides(state.isSnapToGuides());
+            settings.setShowGrid(state.isShowGrid());
             settings.setZoomLevel(sanitizeZoomLevel(state.getZoomLevel()));
             if (mainSplitPane != null && mainSplitPane.getScene() != null) {
                 Window window = mainSplitPane.getScene().getWindow();
@@ -3511,8 +3752,12 @@ public class DeckMakerController {
 
     private void setupAutoSaveTimeline() {
         Timeline timeline = new Timeline(new KeyFrame(javafx.util.Duration.seconds(30), event -> {
-            if (currentFile != null) {
-                saveToFile(currentFile);
+            if (state.isDirty()) {
+                try {
+                    DeckStorage.save(currentTemplate, DeckStorage.getRecoveryTempFile());
+                } catch (IOException e) {
+                    System.err.println("Failed to autosave recovery deck: " + e.getMessage());
+                }
             }
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
@@ -3712,6 +3957,8 @@ public class DeckMakerController {
         if (state.isProfessionalMode()) badges.add("PRO");
         if (state.isPreviewMode()) badges.add("PREVIEW");
         if (state.isShowClippedContent()) badges.add("CLIPPED");
+        if (state.isSnapToGuides()) badges.add("SNAP");
+        if (state.isShowGrid() && !state.isPreviewMode()) badges.add("GRID");
         return badges.isEmpty() ? "" : " | [" + String.join("] [", badges) + "]";
     }
 

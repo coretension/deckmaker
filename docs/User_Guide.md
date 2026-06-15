@@ -55,11 +55,11 @@ Add elements to your card via the **Insert** menu. All elements share common pro
 - **Wrapping:** Text automatically wraps based on the width of its parent container.
 - **Font Config:** Link the text to a specific **Font Configuration** (see below) to maintain consistent styling across multiple text elements.
 
-### 🖼️ Image
+### Image
 - **Static Images:** Provide a file path to an image on your computer.
 - **Dynamic Images:** Use tags like `{{ImagePath}}` to load different images for different cards based on your spreadsheet data.
 
-### 📦 Containers
+### Containers
 Containers help you group and organize elements.
 - **Layout Types:**
   - **Positional:** Place elements anywhere inside using X and Y coordinates.

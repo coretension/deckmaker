@@ -18,6 +18,10 @@ public class AppSettings {
     private double windowHeight = 700;
     /** Canvas zoom level. */
     private double zoomLevel = 1.0;
+    /** Whether elements snap to card and element guide lines while dragging. */
+    private boolean snapToGuides = true;
+    /** Whether the editing grid is shown behind the card. */
+    private boolean showGrid = true;
 
     /** @return the last opened deck path */
     public String getLastOpenedDeckPath() {
@@ -87,5 +91,25 @@ public class AppSettings {
     /** @param zoomLevel canvas zoom level */
     public void setZoomLevel(double zoomLevel) {
         this.zoomLevel = zoomLevel;
+    }
+
+    /** @return whether elements snap to guide lines while dragging */
+    public boolean isSnapToGuides() {
+        return snapToGuides;
+    }
+
+    /** @param snapToGuides whether elements snap to guide lines while dragging */
+    public void setSnapToGuides(boolean snapToGuides) {
+        this.snapToGuides = snapToGuides;
+    }
+
+    /** @return whether the editing grid is shown */
+    public boolean isShowGrid() {
+        return showGrid;
+    }
+
+    /** @param showGrid whether the editing grid is shown */
+    public void setShowGrid(boolean showGrid) {
+        this.showGrid = showGrid;
     }
 }

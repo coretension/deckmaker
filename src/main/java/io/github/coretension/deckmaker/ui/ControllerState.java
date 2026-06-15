@@ -7,6 +7,8 @@ final class ControllerState {
     private boolean previewMode;
     private boolean professionalMode;
     private boolean showClippedContent;
+    private boolean snapToGuides = true;
+    private boolean showGrid = true;
     private double zoomLevel = 1.0;
     private boolean dirty;
     private boolean restoringPanelDividers;
@@ -34,6 +36,22 @@ final class ControllerState {
 
     void setShowClippedContent(boolean showClippedContent) {
         this.showClippedContent = showClippedContent;
+    }
+
+    boolean isSnapToGuides() {
+        return snapToGuides;
+    }
+
+    void setSnapToGuides(boolean snapToGuides) {
+        this.snapToGuides = snapToGuides;
+    }
+
+    boolean isShowGrid() {
+        return showGrid;
+    }
+
+    void setShowGrid(boolean showGrid) {
+        this.showGrid = showGrid;
     }
 
     double getZoomLevel() {
