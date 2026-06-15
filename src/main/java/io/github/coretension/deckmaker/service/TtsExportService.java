@@ -2,10 +2,6 @@ package io.github.coretension.deckmaker.service;
 
 import io.github.coretension.deckmaker.model.CardDimension;
 import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.ui.DeckMakerController;
-import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -22,12 +18,12 @@ import java.util.Map;
 public class TtsExportService {
     private final CardTemplate template;
     private final List<Map<String, String>> csvData;
-    private final DeckMakerController controller;
+    private final DeckRenderService renderer;
 
-    public TtsExportService(CardTemplate template, List<Map<String, String>> csvData, DeckMakerController controller) {
+    public TtsExportService(CardTemplate template, List<Map<String, String>> csvData, DeckRenderService renderer) {
         this.template = template;
         this.csvData = csvData;
-        this.controller = controller;
+        this.renderer = renderer;
     }
 
     /**
@@ -39,6 +35,10 @@ public class TtsExportService {
      * @throws IOException if an error occurs during export
      */
     public void exportToTts(File file, int cardsPerRow, int cardsPerColumn) throws IOException {
+        if (cardsPerRow < 1 || cardsPerRow > 10 || cardsPerColumn < 1 || cardsPerColumn > 7) {
+            throw new IOException("TTS deck sheet grid must be between 1x1 and 10x7.");
+        }
+
         List<Map<String, String>> records = csvData.isEmpty() ? List.of(Map.of()) : csvData;
         int totalCards = records.size();
         
@@ -48,7 +48,7 @@ public class TtsExportService {
         // but here we just fill as many as we have.
         
         double dpi = 300; // High resolution for export
-        boolean proMode = controller.isProfessionalMode();
+        boolean proMode = renderer.isProfessionalMode();
         double bleedMm = proMode ? template.getBleedMm() : 0;
         
         int cardWidthPx = (int) Math.round((template.getDimension().getWidthMm() + 2 * bleedMm) * dpi / 25.4);
@@ -66,7 +66,7 @@ public class TtsExportService {
         for (Map<String, String> record : records) {
             if (count >= cardsPerRow * cardsPerColumn) break; // Limit to one sheet for now
 
-            BufferedImage cardImage = controller.renderCardToImage(record, dpi, true);
+            BufferedImage cardImage = renderer.renderCardToImage(record, dpi, true);
             int row = count / cardsPerRow;
             int col = count % cardsPerRow;
             int x = col * cardWidthPx;

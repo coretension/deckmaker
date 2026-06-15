@@ -2,7 +2,6 @@ package io.github.coretension.deckmaker.service;
 
 import io.github.coretension.deckmaker.model.CardDimension;
 import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.ui.DeckMakerController;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -29,19 +28,18 @@ public class PrintService {
 
     private final CardTemplate template;
     private final List<Map<String, String>> csvData;
-    private final DeckMakerController controller;
+    private final DeckRenderService renderer;
 
     /**
      * Constructs a PrintService with necessary dependencies.
      * @param template the card template to use
      * @param csvData the data to merge into the template
-     * @param dataMerger the merger service to process the template and data
-     * @param controller the main controller for UI interactions
+     * @param renderer renderer used to create card content
      */
-    public PrintService(CardTemplate template, List<Map<String, String>> csvData, DataMerger dataMerger, DeckMakerController controller) {
+    public PrintService(CardTemplate template, List<Map<String, String>> csvData, DeckRenderService renderer) {
         this.template = template;
         this.csvData = csvData;
-        this.controller = controller;
+        this.renderer = renderer;
     }
 
     /**
@@ -239,7 +237,7 @@ public class PrintService {
         int cardsPerPage = cardsPerRow * rowsPerPage;
         int startIdx = pageIndex * cardsPerPage;
         
-        boolean proMode = controller.isProfessionalMode();
+        boolean proMode = renderer.isProfessionalMode();
         double bleedPx = proMode ? template.getBleedMm() * (CardDimension.getDpi() / 25.4) : 0;
         double cardW = template.getDimension().getWidthPx() + 2 * bleedPx;
         double cardH = template.getDimension().getHeightPx() + 2 * bleedPx;
@@ -274,7 +272,7 @@ public class PrintService {
             contentPane.setLayoutX(bleedPx);
             contentPane.setLayoutY(bleedPx);
             cardPane.getChildren().add(contentPane);
-            controller.renderElementsExternal(template.getElements(), contentPane, record, true);
+            renderer.renderElements(template.getElements(), contentPane, record, true);
             
             // Apply scale to convert from UI DPI to 72 DPI (printing points)
             cardPane.getTransforms().add(new Scale(scale, scale));

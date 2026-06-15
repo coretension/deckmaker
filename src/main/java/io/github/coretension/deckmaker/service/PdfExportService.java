@@ -4,12 +4,7 @@ import com.lowagie.text.Document;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfWriter;
-import io.github.coretension.deckmaker.model.CardDimension;
 import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.ui.DeckMakerController;
-import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.Scene;
-import javafx.scene.layout.Pane;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -21,12 +16,12 @@ import java.util.Map;
 public class PdfExportService {
     private final CardTemplate template;
     private final List<Map<String, String>> csvData;
-    private final DeckMakerController controller;
+    private final DeckRenderService renderer;
 
-    public PdfExportService(CardTemplate template, List<Map<String, String>> csvData, DeckMakerController controller) {
+    public PdfExportService(CardTemplate template, List<Map<String, String>> csvData, DeckRenderService renderer) {
         this.template = template;
         this.csvData = csvData;
-        this.controller = controller;
+        this.renderer = renderer;
     }
 
     /**
@@ -38,7 +33,7 @@ public class PdfExportService {
     public void exportToPdf(File file) throws IOException {
         double cardWidthMm = template.getDimension().getWidthMm();
         double cardHeightMm = template.getDimension().getHeightMm();
-        boolean proMode = controller.isProfessionalMode();
+        boolean proMode = renderer.isProfessionalMode();
         double bleedMm = proMode ? template.getBleedMm() : 0;
         
         float totalWidthPt = (float)((cardWidthMm + 2 * bleedMm) * 72 / 25.4);
@@ -60,7 +55,7 @@ public class PdfExportService {
                 document.newPage();
                 
                 // Render card to image at high DPI (300)
-                BufferedImage cardImage = controller.renderCardToImage(record, 300, false);
+                BufferedImage cardImage = renderer.renderCardToImage(record, 300, false);
                 
                 com.lowagie.text.Image pdfImg = convertToCmykImage(cardImage);
                 pdfImg.scaleToFit(totalWidthPt, totalHeightPt);

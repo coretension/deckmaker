@@ -13,6 +13,10 @@ import java.io.File;
 public class UIUtils {
 
     public static HBox createSliderWithNumericField(DoubleProperty property, double min, double max) {
+        return createSliderWithNumericField(property, min, max, max <= 1.0 ? 2 : 0);
+    }
+
+    public static HBox createSliderWithNumericField(DoubleProperty property, double min, double max, int decimals) {
         Slider slider = new Slider(min, max, property.get());
         slider.setMinWidth(100);
         slider.setMaxWidth(Double.MAX_VALUE);
@@ -24,11 +28,7 @@ public class UIUtils {
 
         // Formatting function for numeric field
         java.lang.Runnable updateText = () -> {
-            if (max <= 1.0) {
-                textField.setText(String.format("%.2f", property.get()));
-            } else {
-                textField.setText(String.format("%.0f", property.get()));
-            }
+            textField.setText(String.format("%." + Math.max(0, decimals) + "f", property.get()));
         };
 
         updateText.run();

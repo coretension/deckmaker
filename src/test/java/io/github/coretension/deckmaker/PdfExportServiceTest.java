@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class PdfExportServiceTest {
 
     @Test
@@ -24,10 +26,8 @@ public class PdfExportServiceTest {
         record.put("Name", "Test Card");
         csvData.add(record);
         
-        // Mock controller or just use it if it's light enough? 
-        // DeckMakerController needs JavaFX initialization.
-        // For a unit test, we might need to mock it.
-        // But since this is a "Forensics/Fix" task, I'll focus on compilation and structure.
+        PdfExportService service = new PdfExportService(template, csvData, null);
+        assertNotNull(service);
     }
 }
 

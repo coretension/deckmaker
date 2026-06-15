@@ -17,7 +17,7 @@ public class TtsExportServiceTest {
     public void testTtsExportServiceCreation() {
         CardTemplate template = new CardTemplate();
         List<Map<String, String>> csvData = new ArrayList<>();
-        // DeckMakerController is harder to instantiate without JavaFX, but we can check if service exists
+        // Rendering is supplied at export time by the application; this checks service construction only.
         TtsExportService service = new TtsExportService(template, csvData, null);
         assertNotNull(service);
     }
