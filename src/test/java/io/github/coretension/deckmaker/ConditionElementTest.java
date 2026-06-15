@@ -1,9 +1,7 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.model.ConditionElement;
+import io.github.coretension.deckmaker.service.DataMerger;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;

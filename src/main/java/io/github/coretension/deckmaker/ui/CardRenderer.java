@@ -1,15 +1,6 @@
 package io.github.coretension.deckmaker.ui;
 
-import io.github.coretension.deckmaker.model.CardDimension;
-import io.github.coretension.deckmaker.model.CardElement;
-import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.model.ConditionElement;
-import io.github.coretension.deckmaker.model.ContainerElement;
-import io.github.coretension.deckmaker.model.FontElement;
-import io.github.coretension.deckmaker.model.IconElement;
-import io.github.coretension.deckmaker.model.ImageElement;
-import io.github.coretension.deckmaker.model.ParentCardElement;
-import io.github.coretension.deckmaker.model.TextElement;
+import io.github.coretension.deckmaker.model.*;
 import io.github.coretension.deckmaker.service.DataMerger;
 import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
@@ -18,12 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextFlow;
 

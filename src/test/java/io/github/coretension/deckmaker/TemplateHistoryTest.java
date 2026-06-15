@@ -1,9 +1,8 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.model.CardTemplate;
+import io.github.coretension.deckmaker.model.TextElement;
+import io.github.coretension.deckmaker.service.TemplateHistory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

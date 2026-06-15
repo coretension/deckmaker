@@ -1,10 +1,8 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.service.DataMerger;
 import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;

@@ -1,10 +1,6 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.model.ConditionElement;
-import io.github.coretension.deckmaker.model.IconElement;
-import io.github.coretension.deckmaker.model.ImageElement;
-import io.github.coretension.deckmaker.model.TextElement;
+import io.github.coretension.deckmaker.model.*;
 import io.github.coretension.deckmaker.service.DataMerger;
 import io.github.coretension.deckmaker.service.PreflightService;
 import org.junit.jupiter.api.Test;

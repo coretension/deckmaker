@@ -1,12 +1,9 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.model.CardTemplate;
+import io.github.coretension.deckmaker.service.PdfExportService;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

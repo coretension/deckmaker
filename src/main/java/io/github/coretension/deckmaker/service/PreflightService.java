@@ -1,20 +1,9 @@
 package io.github.coretension.deckmaker.service;
 
-import io.github.coretension.deckmaker.model.CardElement;
-import io.github.coretension.deckmaker.model.CardTemplate;
-import io.github.coretension.deckmaker.model.ConditionElement;
-import io.github.coretension.deckmaker.model.ContainerElement;
-import io.github.coretension.deckmaker.model.IconElement;
-import io.github.coretension.deckmaker.model.ImageElement;
-import io.github.coretension.deckmaker.model.ParentCardElement;
-import io.github.coretension.deckmaker.model.TextElement;
+import io.github.coretension.deckmaker.model.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

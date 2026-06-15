@@ -1,15 +1,14 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.model.CardTemplate;
+import io.github.coretension.deckmaker.service.TtsExportService;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TtsExportServiceTest {
 

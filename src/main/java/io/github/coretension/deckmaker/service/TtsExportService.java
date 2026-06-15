@@ -1,6 +1,5 @@
 package io.github.coretension.deckmaker.service;
 
-import io.github.coretension.deckmaker.model.CardDimension;
 import io.github.coretension.deckmaker.model.CardTemplate;
 
 import javax.imageio.ImageIO;

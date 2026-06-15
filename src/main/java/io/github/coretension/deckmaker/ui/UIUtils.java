@@ -1,7 +1,6 @@
 package io.github.coretension.deckmaker.ui;
 
 import javafx.beans.property.DoubleProperty;
-import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;

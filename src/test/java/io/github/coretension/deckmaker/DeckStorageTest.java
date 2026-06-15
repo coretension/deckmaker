@@ -1,9 +1,8 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
+import io.github.coretension.deckmaker.config.AppSettings;
 import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.persistence.DeckStorage;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import org.junit.jupiter.api.Test;

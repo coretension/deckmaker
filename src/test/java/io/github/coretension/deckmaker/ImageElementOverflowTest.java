@@ -1,9 +1,9 @@
 package io.github.coretension.deckmaker;
 
-import io.github.coretension.deckmaker.config.*;
-import io.github.coretension.deckmaker.model.*;
-import io.github.coretension.deckmaker.persistence.*;
-import io.github.coretension.deckmaker.service.*;
+import io.github.coretension.deckmaker.model.CardElement;
+import io.github.coretension.deckmaker.model.CardTemplate;
+import io.github.coretension.deckmaker.model.ImageElement;
+import io.github.coretension.deckmaker.persistence.DeckStorage;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
