@@ -12,6 +12,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Main JavaFX Application class for DeckMaker.
@@ -44,13 +45,11 @@ public class DeckMakerApplication extends Application {
         DeckMakerController controller = fxmlLoader.getController();
 
         stage.setTitle("DeckMaker");
-        Image appIcon = new Image(DeckMakerApplication.class.getResourceAsStream(
-                "/io/github/coretension/deckmaker/icons/app-icon.png"));
+        Image appIcon = new Image(Objects.requireNonNull(DeckMakerApplication.class.getResourceAsStream(
+            "/io/github/coretension/deckmaker/icons/app-icon.png")));
         stage.getIcons().add(appIcon);
         stage.setScene(scene);
-        stage.setOnCloseRequest(event -> {
-            controller.saveSettings();
-        });
+        stage.setOnCloseRequest(event -> controller.saveSettings());
         
         Runtime.getRuntime().addShutdownHook(new Thread(controller::saveSettings));
         

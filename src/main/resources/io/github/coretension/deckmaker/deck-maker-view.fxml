@@ -116,7 +116,7 @@
                     <ScrollPane fitToHeight="true" fitToWidth="true" style="-fx-background-color: #999;">
                         <StackPane fx:id="canvasContainer">
                             <Group>
-                                <Pane fx:id="cardCanvas" pickOnBounds="true" style="-fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 0);"/>
+                                <Pane fx:id="cardCanvas" style="-fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 0);"/>
                             </Group>
                         </StackPane>
                     </ScrollPane>

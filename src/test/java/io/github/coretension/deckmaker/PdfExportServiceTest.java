@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class PdfExportServiceTest {
 
     @Test
-    public void testPdfExportStructure() throws IOException {
+    public void testPdfExportStructure() {
         CardTemplate template = new CardTemplate();
         template.setBleedMm(3.0);
         

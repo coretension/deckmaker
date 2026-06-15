@@ -116,20 +116,28 @@ mvn clean package -DskipTests
 ```
 The resulting JAR will be in the `target/` directory.
 
-### Creating Distributions
+### Creating Upgradeable Installers
 You can use the `dist` system property to trigger platform-specific builds using `jpackage`:
 
 - **Windows Distribution:**
   ```bash
   mvn clean package -Ddist=win -DskipTests
   ```
-  Look for the bundle in `target/dist-win/`.
+  Look for the installer in `target/dist-win/`. Windows installers use a stable upgrade UUID, so newer versions can replace older DeckMaker installs.
 
 - **Linux Distribution:**
   ```bash
   mvn clean package -Ddist=linux -DskipTests
   ```
-  Look for the bundle in `target/dist-linux/`.
+  Look for the `.deb` package in `target/dist-linux/`.
+
+- **macOS Distribution:**
+  ```bash
+  mvn clean package -Ddist=mac -DskipTests
+  ```
+  Look for the `.pkg` installer in `target/dist-mac/`.
+
+Before cutting a release, update `jpackage.app.version` in `pom.xml`; package managers use that version to decide whether a build is newer.
 
 ---
 

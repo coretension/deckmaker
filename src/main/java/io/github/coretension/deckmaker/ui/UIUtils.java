@@ -42,7 +42,7 @@ public class UIUtils {
         textField.setOnAction(e -> {
             try {
                 double val = Double.parseDouble(textField.getText());
-                property.set(Math.max(min, Math.min(max, val)));
+                property.set(Math.clamp(val, min, max));
                 updateText.run();
             } catch (NumberFormatException ex) {
                 updateText.run();
@@ -53,7 +53,7 @@ public class UIUtils {
             if (!newVal) { // Lost focus
                 try {
                     double val = Double.parseDouble(textField.getText());
-                    property.set(Math.max(min, Math.min(max, val)));
+                    property.set(Math.clamp(val, min, max));
                     updateText.run();
                 } catch (NumberFormatException ex) {
                     updateText.run();

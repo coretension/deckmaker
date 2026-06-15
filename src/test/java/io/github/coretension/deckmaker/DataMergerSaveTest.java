@@ -76,8 +76,8 @@ public class DataMergerSaveTest {
             DataMerger.CsvResult csvLoaded = dataMerger.loadCsv(csvFile.getAbsolutePath());
             DataMerger.CsvResult odsLoaded = dataMerger.loadCsv(odsFile.getAbsolutePath());
             
-            assertEquals("1", csvLoaded.records.get(0).get("ID"));
-            assertEquals("1", odsLoaded.records.get(0).get("ID"));
+            assertEquals("1", csvLoaded.records.getFirst().get("ID"));
+            assertEquals("1", odsLoaded.records.getFirst().get("ID"));
         } finally {
             csvFile.delete();
             odsFile.delete();
@@ -114,9 +114,9 @@ public class DataMergerSaveTest {
             assertEquals(headers, loaded.headers);
             assertEquals(2, loaded.records.size());
 
-            assertEquals("Item 1", loaded.records.get(0).get("Name"));
-            assertEquals("Text 1", loaded.records.get(0).get("Value"));
-            assertEquals("123", loaded.records.get(0).get("Numeric"));
+            assertEquals("Item 1", loaded.records.getFirst().get("Name"));
+            assertEquals("Text 1", loaded.records.getFirst().get("Value"));
+            assertEquals("123", loaded.records.getFirst().get("Numeric"));
 
             assertEquals("Item 2", loaded.records.get(1).get("Name"));
             assertEquals("Text 2", loaded.records.get(1).get("Value"));

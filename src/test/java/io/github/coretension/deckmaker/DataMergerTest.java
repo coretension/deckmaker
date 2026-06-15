@@ -25,25 +25,26 @@ public class DataMergerTest {
         Path tempFile = Files.createTempFile("test", ".ods");
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempFile.toFile()))) {
             zos.putNextEntry(new ZipEntry("content.xml"));
-            String content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                    "<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\" " +
-                    "xmlns:table=\"urn:oasis:names:tc:opendocument:xmlns:table:1.0\" " +
-                    "xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\">\n" +
-                    "  <office:body>\n" +
-                    "    <office:spreadsheet>\n" +
-                    "      <table:table>\n" +
-                    "        <table:table-row>\n" +
-                    "          <table:table-cell><text:p>Name</text:p></table:table-cell>\n" +
-                    "          <table:table-cell><text:p>Power</text:p></table:table-cell>\n" +
-                    "        </table:table-row>\n" +
-                    "        <table:table-row>\n" +
-                    "          <table:table-cell><text:p>Hero</text:p></table:table-cell>\n" +
-                    "          <table:table-cell><text:p>Flight</text:p></table:table-cell>\n" +
-                    "        </table:table-row>\n" +
-                    "      </table:table>\n" +
-                    "    </office:spreadsheet>\n" +
-                    "  </office:body>\n" +
-                    "</office:document-content>";
+            String content = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" \
+                xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" \
+                xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+                  <office:body>
+                    <office:spreadsheet>
+                      <table:table>
+                        <table:table-row>
+                          <table:table-cell><text:p>Name</text:p></table:table-cell>
+                          <table:table-cell><text:p>Power</text:p></table:table-cell>
+                        </table:table-row>
+                        <table:table-row>
+                          <table:table-cell><text:p>Hero</text:p></table:table-cell>
+                          <table:table-cell><text:p>Flight</text:p></table:table-cell>
+                        </table:table-row>
+                      </table:table>
+                    </office:spreadsheet>
+                  </office:body>
+                </office:document-content>""";
             zos.write(content.getBytes());
             zos.closeEntry();
         }
@@ -56,8 +57,8 @@ public class DataMergerTest {
         assertEquals("Power", result.headers.get(1));
 
         assertEquals(1, result.records.size());
-        assertEquals("Hero", result.records.get(0).get("Name"));
-        assertEquals("Flight", result.records.get(0).get("Power"));
+        assertEquals("Hero", result.records.getFirst().get("Name"));
+        assertEquals("Flight", result.records.getFirst().get("Power"));
 
         Files.deleteIfExists(tempFile);
     }

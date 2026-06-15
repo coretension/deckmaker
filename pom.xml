@@ -13,6 +13,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.12.1</junit.version>
         <jpackage.app.version>0.2.1</jpackage.app.version>
+        <jpackage.vendor>CoreTension</jpackage.vendor>
+        <jpackage.description>Visual card deck editor for reusable CSV-driven templates</jpackage.description>
+        <!-- Keep this UUID stable forever so Windows installers can upgrade prior DeckMaker installs. -->
+        <jpackage.win.upgrade.uuid>3f2ec4a4-75fc-4d78-bc24-6c6b8dd15d17</jpackage.win.upgrade.uuid>
+        <jpackage.mac.package.identifier>io.github.coretension.deckmaker</jpackage.mac.package.identifier>
     </properties>
 
     <dependencies>
@@ -249,6 +254,12 @@
                                     <arguments>
                                         <argument>--name</argument>
                                         <argument>deckmaker</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${jpackage.app.version}</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>${jpackage.vendor}</argument>
+                                        <argument>--description</argument>
+                                        <argument>${jpackage.description}</argument>
                                         <argument>--input</argument>
                                         <argument>${project.build.directory}/dist-input</argument>
                                         <argument>--main-jar</argument>
@@ -256,7 +267,9 @@
                                         <argument>--main-class</argument>
                                         <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                                         <argument>--type</argument>
-                                        <argument>app-image</argument>
+                                        <argument>deb</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${project.basedir}/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.png</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist-linux</argument>
                                     </arguments>
@@ -293,6 +306,12 @@
                                     <arguments>
                                         <argument>--name</argument>
                                         <argument>deckmaker</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${jpackage.app.version}</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>${jpackage.vendor}</argument>
+                                        <argument>--description</argument>
+                                        <argument>${jpackage.description}</argument>
                                         <argument>--input</argument>
                                         <argument>${project.build.directory}/dist-input</argument>
                                         <argument>--main-jar</argument>
@@ -303,6 +322,10 @@
                                         <argument>exe</argument>
                                         <argument>--icon</argument>
                                         <argument>${project.basedir}/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.ico</argument>
+                                        <argument>--win-upgrade-uuid</argument>
+                                        <argument>${jpackage.win.upgrade.uuid}</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-shortcut</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist-win</argument>
                                     </arguments>
@@ -341,6 +364,10 @@
                                         <argument>deckmaker</argument>
                                         <argument>--app-version</argument>
                                         <argument>${jpackage.app.version}</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>${jpackage.vendor}</argument>
+                                        <argument>--description</argument>
+                                        <argument>${jpackage.description}</argument>
                                         <argument>--input</argument>
                                         <argument>${project.build.directory}/dist-input</argument>
                                         <argument>--main-jar</argument>
@@ -348,7 +375,11 @@
                                         <argument>--main-class</argument>
                                         <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                                         <argument>--type</argument>
-                                        <argument>app-image</argument>
+                                        <argument>pkg</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${project.basedir}/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.icns</argument>
+                                        <argument>--mac-package-identifier</argument>
+                                        <argument>${jpackage.mac.package.identifier}</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist-mac</argument>
                                     </arguments>

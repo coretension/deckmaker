@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  */
 public class PreflightService {
     private static final int MAX_REPEATED_ISSUES = 12;
-    private static final Pattern TAG_PATTERN = Pattern.compile("\\{\\{(.+?)\\}\\}");
+    private static final Pattern TAG_PATTERN = Pattern.compile("\\{\\{(.+?)}}");
 
     private final DataMerger dataMerger;
 
