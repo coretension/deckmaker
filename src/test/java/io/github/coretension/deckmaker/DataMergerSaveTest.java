@@ -45,9 +45,9 @@ public class DataMergerSaveTest {
             assertEquals(headers, loaded.headers);
             assertEquals(2, loaded.records.size());
             
-            assertEquals("Hero", loaded.records.get(0).get("Name"));
-            assertEquals("Character", loaded.records.get(0).get("Type"));
-            assertEquals("100", loaded.records.get(0).get("HP"));
+            assertEquals("Hero", loaded.records.getFirst().get("Name"));
+            assertEquals("Character", loaded.records.getFirst().get("Type"));
+            assertEquals("100", loaded.records.getFirst().get("HP"));
             
             assertEquals("Villain", loaded.records.get(1).get("Name"));
             assertEquals("Enemy", loaded.records.get(1).get("Type"));

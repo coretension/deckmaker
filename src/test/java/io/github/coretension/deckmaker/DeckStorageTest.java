@@ -11,8 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DeckStorageTest {
 
@@ -65,27 +64,27 @@ public class DeckStorageTest {
             assertEquals("test.csv", loaded.getCsvPath());
             assertEquals(2, loaded.getElements().size());
             
-            CardElement el = loaded.getElements().get(0);
-            assertTrue(el instanceof ConditionElement);
+            CardElement el = loaded.getElements().getFirst();
+            assertInstanceOf(ConditionElement.class, el);
             ConditionElement loadedCondition = (ConditionElement) el;
             assertEquals("Test Condition", loadedCondition.getName());
             assertEquals("{{Name}} == Jason", loadedCondition.getCondition());
             assertEquals(1, loadedCondition.getChildren().size());
             
-            TextElement loadedText = (TextElement) loadedCondition.getChildren().get(0);
+            TextElement loadedText = (TextElement) loadedCondition.getChildren().getFirst();
             assertEquals("Test Text", loadedText.getName());
             assertEquals(10, loadedText.getX());
             assertEquals(20, loadedText.getY());
             assertEquals("Hello {{Name}}", loadedText.getText());
 
             CardElement el2 = loaded.getElements().get(1);
-            assertTrue(el2 instanceof ConditionElement);
+            assertInstanceOf(ConditionElement.class, el2);
             ConditionElement loadedCondition2 = (ConditionElement) el2;
             assertEquals("Test Condition 2", loadedCondition2.getName());
             assertEquals("{{Type}} == Item", loadedCondition2.getCondition());
             assertEquals(1, loadedCondition2.getChildren().size());
             
-            ContainerElement loadedContainer = (ContainerElement) loadedCondition2.getChildren().get(0);
+            ContainerElement loadedContainer = (ContainerElement) loadedCondition2.getChildren().getFirst();
             assertEquals("Test Container", loadedContainer.getName());
             assertEquals(50, loadedContainer.getX());
             assertEquals(60, loadedContainer.getY());
