@@ -20,6 +20,7 @@
                     <MenuItem text="Load CSV" onAction="#handleLoadCsv"/>
                     <MenuItem text="View CSV Data" onAction="#handleViewData"/>
                     <MenuItem text="Print Deck" onAction="#handlePrintDeck"/>
+                    <MenuItem text="Export Current Card as Image..." onAction="#handleExportCurrentCardImage"/>
                     <MenuItem text="Export to PDF (CMYK)" onAction="#handleExportPdf"/>
                     <MenuItem text="Export to TTS Deck Sheet" onAction="#handleExportTts"/>
                     <SeparatorMenuItem/>

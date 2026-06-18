@@ -329,9 +329,7 @@ public class DeckMakerController {
                 event.consume();
             });
 
-            cell.setOnDragExited(event -> {
-                cell.setStyle("");
-            });
+            cell.setOnDragExited(event -> cell.setStyle(""));
 
             cell.setOnDragDropped(event -> {
                 Dragboard db = event.getDragboard();
@@ -401,7 +399,7 @@ public class DeckMakerController {
                         if (elementBelow instanceof ParentCardElement pe) {
                             // Move into container at the top
                             parentList.remove(selected);
-                            pe.getChildren().add(0, selected);
+                            pe.getChildren().addFirst(selected);
                         } else {
                             // Swap with element below
                             parentList.remove(selected);
@@ -1283,14 +1281,7 @@ public class DeckMakerController {
             return false;
         }
         for (Node current = node; current != null; current = current.getParent()) {
-            if (current instanceof TextInputControl
-                    || current instanceof ComboBoxBase<?>
-                    || current instanceof ChoiceBox<?>
-                    || current instanceof Slider
-                    || current instanceof TableView<?>
-                    || current instanceof ListView<?>
-                    || current instanceof ButtonBase
-                    || current instanceof ColorPicker) {
+            if (current instanceof TextInputControl || current instanceof ComboBoxBase<?> || current instanceof ChoiceBox<?> || current instanceof Slider || current instanceof TableView<?> || current instanceof ListView<?> || current instanceof ButtonBase) {
                 return true;
             }
         }
@@ -1512,7 +1503,7 @@ public class DeckMakerController {
             updating[0] = true;
             double minMm = pxToMm(minPx);
             double maxMm = pxToMm(maxPx);
-            double mm = Math.max(minMm, Math.min(maxMm, newValue.doubleValue()));
+            double mm = Math.clamp(newValue.doubleValue(), minMm, maxMm);
             pixelProperty.set(mmToPx(mm));
             if (Math.abs(mm - newValue.doubleValue()) > 0.0001) {
                 millimeterProperty.set(mm);
@@ -2837,6 +2828,35 @@ public class DeckMakerController {
     }
 
     @FXML
+    void handleExportCurrentCardImage(ActionEvent event) {
+        Map<String, String> currentRecord = getCurrentRecordForExport();
+        if (!csvData.isEmpty() && !runPreflightForRecords("Export Card Image", List.of(currentRecord))) {
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Current Card as Image");
+        FileChooser.ExtensionFilter pngFilter = new FileChooser.ExtensionFilter("PNG Image", "*.png");
+        FileChooser.ExtensionFilter jpgFilter = new FileChooser.ExtensionFilter("JPEG Image", "*.jpg");
+        fileChooser.getExtensionFilters().addAll(pngFilter, jpgFilter);
+        fileChooser.setSelectedExtensionFilter(pngFilter);
+        File file = fileChooser.showSaveDialog(propertiesPane.getScene().getWindow());
+        if (file != null) {
+            String extension = fileChooser.getSelectedExtensionFilter() == jpgFilter ? "jpg" : "png";
+            file = SingleCardImageExportService.withImageExtension(file, extension);
+            SingleCardImageExportService exportService = new SingleCardImageExportService(createDeckRenderService());
+            try {
+                exportService.exportCard(file, currentRecord);
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "Card image exported successfully!");
+                alert.show();
+            } catch (IOException e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to export card image: " + e.getMessage());
+                alert.show();
+            }
+        }
+    }
+
+    @FXML
     void handleExportTts(ActionEvent event) {
         if (!runPreflightBeforeProduction("Export TTS Deck Sheet")) {
             return;
@@ -2913,6 +2933,13 @@ public class DeckMakerController {
                 }
             });
         }
+    }
+
+    private Map<String, String> getCurrentRecordForExport() {
+        if (currentRecordIndex >= 0 && currentRecordIndex < csvData.size()) {
+            return csvData.get(currentRecordIndex);
+        }
+        return Map.of();
     }
 
     @FXML
@@ -3352,8 +3379,12 @@ public class DeckMakerController {
     }
 
     private boolean runPreflightBeforeProduction(String actionName) {
+        return runPreflightForRecords(actionName, csvData);
+    }
+
+    private boolean runPreflightForRecords(String actionName, List<Map<String, String>> records) {
         PreflightService.PreflightReport report = new PreflightService(dataMerger)
-                .validate(currentTemplate, csvData, csvHeaders, currentFile);
+                .validate(currentTemplate, records, csvHeaders, currentFile);
         if (report.isClean()) {
             return true;
         }
