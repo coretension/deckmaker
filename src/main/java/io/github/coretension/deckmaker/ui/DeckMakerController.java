@@ -2076,11 +2076,6 @@ public class DeckMakerController {
     }
 
     @FXML
-    void handleAddFont() {
-        addElement(new FontElement());
-    }
-
-    @FXML
     void handleAddIcon() {
         addElement(new IconElement());
     }
@@ -2456,19 +2451,6 @@ public class DeckMakerController {
             if (found != null) return found;
         }
         return null;
-    }
-
-    private void moveSelectedElement(java.util.function.BiConsumer<ObservableList<CardElement>, CardElement> moveAction) {
-        CardElement selected = getSelectedElement();
-        if (selected != null) {
-            saveExpandedState(elementTreeView.getRoot());
-            ObservableList<CardElement> parentList = findParentList(selected);
-            if (parentList != null) {
-                moveAction.accept(parentList, selected);
-                // No need to call renderTemplate() here as nestedListener handles it
-                selectElement(selected);
-            }
-        }
     }
 
     private ParentCardElement findParentElement(CardElement el) {

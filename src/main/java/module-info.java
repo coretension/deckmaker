@@ -3,10 +3,6 @@ module io.github.coretension.deckmaker {
     requires javafx.fxml;
     requires javafx.swing;
 
-    requires org.controlsfx.controls;
-    requires com.dlsc.formsfx;
-    requires net.synedra.validatorfx;
-    requires org.kordamp.bootstrapfx.core;
     requires java.desktop;
 
     requires com.opencsv;
