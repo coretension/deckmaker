@@ -51,4 +51,23 @@ class DeckStorageLegacyConfigTest {
             System.setProperty("user.home", originalUserHome);
         }
     }
+
+    @Test
+    void loadSettingsDefaultsBleedGuideAppearanceWhenFieldsAreMissing() throws IOException {
+        String originalUserHome = System.getProperty("user.home");
+        Path userHome = Files.createTempDirectory("deckmaker-user-home");
+        try {
+            System.setProperty("user.home", userHome.toString());
+            File settingsFile = userHome.resolve(".deckmaker").resolve("settings.json").toFile();
+            settingsFile.getParentFile().mkdirs();
+            Files.writeString(settingsFile.toPath(), "{\"lastOpenedDeckPath\":\"C:\\\\decks\\\\existing.dm\"}");
+
+            AppSettings loaded = DeckStorage.loadSettings();
+
+            assertEquals("#FF0000", loaded.getBleedGuideColor());
+            assertEquals(1.0, loaded.getBleedGuideAlpha());
+        } finally {
+            System.setProperty("user.home", originalUserHome);
+        }
+    }
 }

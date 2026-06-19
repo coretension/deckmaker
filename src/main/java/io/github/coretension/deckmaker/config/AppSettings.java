@@ -22,6 +22,10 @@ public class AppSettings {
     private boolean snapToGuides = true;
     /** Whether the editing grid is shown behind the card. */
     private boolean showGrid = true;
+    /** Hex color used for the bleed guide stroke. */
+    private String bleedGuideColor = "#FF0000";
+    /** Opacity used for the bleed guide stroke (0..1). */
+    private double bleedGuideAlpha = 1.0;
 
     /** @return the last opened deck path */
     public String getLastOpenedDeckPath() {
@@ -111,5 +115,25 @@ public class AppSettings {
     /** @param showGrid whether the editing grid is shown */
     public void setShowGrid(boolean showGrid) {
         this.showGrid = showGrid;
+    }
+
+    /** @return hex color used for bleed guide stroke */
+    public String getBleedGuideColor() {
+        return bleedGuideColor;
+    }
+
+    /** @param bleedGuideColor hex color used for bleed guide stroke */
+    public void setBleedGuideColor(String bleedGuideColor) {
+        this.bleedGuideColor = bleedGuideColor;
+    }
+
+    /** @return opacity used for bleed guide stroke (0..1) */
+    public double getBleedGuideAlpha() {
+        return bleedGuideAlpha;
+    }
+
+    /** @param bleedGuideAlpha opacity used for bleed guide stroke (0..1) */
+    public void setBleedGuideAlpha(double bleedGuideAlpha) {
+        this.bleedGuideAlpha = bleedGuideAlpha;
     }
 }

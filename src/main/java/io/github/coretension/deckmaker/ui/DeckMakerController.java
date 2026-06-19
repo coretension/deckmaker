@@ -852,7 +852,19 @@ public class DeckMakerController {
             javafx.scene.shape.Rectangle bleedGuide = new javafx.scene.shape.Rectangle(bleedPx, bleedPx, 
                     currentTemplate.getDimension().getWidthPx(), currentTemplate.getDimension().getHeightPx());
             bleedGuide.setFill(Color.TRANSPARENT);
-            bleedGuide.setStroke(Color.RED);
+            Color bleedGuideColor;
+            try {
+                bleedGuideColor = Color.web(settings.getBleedGuideColor());
+            } catch (IllegalArgumentException ex) {
+                bleedGuideColor = Color.RED;
+            }
+            double alpha = Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()));
+            bleedGuide.setStroke(new Color(
+                    bleedGuideColor.getRed(),
+                    bleedGuideColor.getGreen(),
+                    bleedGuideColor.getBlue(),
+                    alpha
+            ));
             bleedGuide.setStrokeWidth(1);
             bleedGuide.getStrokeDashArray().addAll(5.0, 5.0);
             bleedGuide.setMouseTransparent(true);
@@ -907,6 +919,7 @@ public class DeckMakerController {
                 currentTemplate,
                 dataMerger,
                 currentFile,
+                settings,
                 state.isPreviewMode(),
                 state.isShowClippedContent(),
                 new CardRenderer.EditHooks() {
@@ -2957,11 +2970,30 @@ public class DeckMakerController {
         bleedField.setPrefWidth(50);
         bleedField.setTooltip(new Tooltip("Extra margin around the card for printing (standard is 3mm)"));
 
+        Color initialBleedGuideColor;
+        try {
+            initialBleedGuideColor = Color.web(settings.getBleedGuideColor());
+        } catch (IllegalArgumentException ex) {
+            initialBleedGuideColor = Color.RED;
+        }
+        ColorPicker bleedGuideColorPicker = new ColorPicker(initialBleedGuideColor);
+        bleedGuideColorPicker.setTooltip(new Tooltip("Bleed guide outline color"));
+
+        Spinner<Double> bleedGuideAlphaSpinner = new Spinner<>(0.0, 1.0,
+                Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha())), 0.05);
+        bleedGuideAlphaSpinner.setEditable(true);
+        bleedGuideAlphaSpinner.setPrefWidth(100);
+        bleedGuideAlphaSpinner.setTooltip(new Tooltip("Bleed guide outline transparency (0 to 1)"));
+
         grid.add(new Label("Last Opened/Saved Deck:"), 0, 0);
         grid.add(pathField, 1, 0);
         grid.add(browseButton, 2, 0);
         grid.add(new Label("Card Bleed (mm):"), 0, 1);
         grid.add(bleedField, 1, 1);
+        grid.add(new Label("Bleed Guide Color:"), 0, 2);
+        grid.add(bleedGuideColorPicker, 1, 2);
+        grid.add(new Label("Bleed Guide Alpha:"), 0, 3);
+        grid.add(bleedGuideAlphaSpinner, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -2974,6 +3006,8 @@ public class DeckMakerController {
                 } catch (NumberFormatException e) {
                     // Ignore or show alert
                 }
+                settings.setBleedGuideColor(toHexColor(bleedGuideColorPicker.getValue()));
+                settings.setBleedGuideAlpha(Math.max(0.0, Math.min(1.0, bleedGuideAlphaSpinner.getValue())));
                 return settings;
             }
             return null;
@@ -2986,6 +3020,13 @@ public class DeckMakerController {
             updateCanvasSize();
             renderTemplate();
         });
+    }
+
+    private static String toHexColor(Color color) {
+        int r = (int) Math.round(color.getRed() * 255);
+        int g = (int) Math.round(color.getGreen() * 255);
+        int b = (int) Math.round(color.getBlue() * 255);
+        return String.format("#%02X%02X%02X", r, g, b);
     }
 
     @FXML

@@ -1,5 +1,6 @@
 package io.github.coretension.deckmaker.ui;
 
+import io.github.coretension.deckmaker.config.AppSettings;
 import io.github.coretension.deckmaker.model.*;
 import io.github.coretension.deckmaker.service.DataMerger;
 import javafx.collections.ObservableList;
@@ -24,6 +25,7 @@ final class CardRenderer {
     private final CardTemplate template;
     private final DataMerger dataMerger;
     private final File deckFile;
+    private final AppSettings settings;
     private final boolean previewMode;
     private final boolean showClippedContent;
     private final EditHooks editHooks;
@@ -31,12 +33,14 @@ final class CardRenderer {
     CardRenderer(CardTemplate template,
                  DataMerger dataMerger,
                  File deckFile,
+                 AppSettings settings,
                  boolean previewMode,
                  boolean showClippedContent,
                  EditHooks editHooks) {
         this.template = template;
         this.dataMerger = dataMerger;
         this.deckFile = deckFile;
+        this.settings = settings;
         this.previewMode = previewMode;
         this.showClippedContent = showClippedContent;
         this.editHooks = editHooks;
@@ -85,7 +89,19 @@ final class CardRenderer {
             double cardHeightPx = template.getDimension().getHeightMm() * dpi / 25.4;
             javafx.scene.shape.Rectangle bleedGuide = new javafx.scene.shape.Rectangle(bleedPx, bleedPx, cardWidthPx, cardHeightPx);
             bleedGuide.setFill(Color.TRANSPARENT);
-            bleedGuide.setStroke(Color.RED);
+            Color bleedGuideColor;
+            try {
+                bleedGuideColor = Color.web(settings.getBleedGuideColor());
+            } catch (IllegalArgumentException ex) {
+                bleedGuideColor = Color.RED;
+            }
+            double alpha = Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()));
+            bleedGuide.setStroke(new Color(
+                    bleedGuideColor.getRed(),
+                    bleedGuideColor.getGreen(),
+                    bleedGuideColor.getBlue(),
+                    alpha
+            ));
             bleedGuide.setStrokeWidth(1);
             bleedGuide.getStrokeDashArray().addAll(5.0, 5.0);
             root.getChildren().add(bleedGuide);
