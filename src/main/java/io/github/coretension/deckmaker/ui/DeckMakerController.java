@@ -1584,7 +1584,7 @@ public class DeckMakerController {
             return;
         }
         recentColors.remove(color);
-        recentColors.add(0, color);
+        recentColors.addFirst(color);
         if (recentColors.size() > MAX_RECENT_COLORS) {
             recentColors.remove(MAX_RECENT_COLORS, recentColors.size());
         }

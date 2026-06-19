@@ -4,32 +4,57 @@ This project is a tool for creating and managing custom card game templates and 
 
 ![DeckMaker Preview](resources/img.png)
 
-## How to Download and Run
-### Windows
-To get started with DeckMaker on Windows, follow these steps:
+## How to Install
 
-1. **Download the Zip File**: 
-   - Go to the [Releases](https://github.com/coretension/deckmaker/releases) page (if applicable) or download the repository as a ZIP file.
-   - Extract the contents of the ZIP file to a folder on your computer.
+DeckMaker is distributed as native installers that include the required runtime, so end users do not need to install Java separately.
 
-2. **Run the Application**:
-   - Navigate to the extracted folder.
-   - Look for the `deckmaker` directory.
-   - Run the `deckmaker.exe` (or use the provided batch file if available).
-   - Alternatively, if you have Maven installed, you can run `./mvnw javafx:run` from the root directory.
+Download the latest installer from the [Releases](https://github.com/coretension/deckmaker/releases) page:
 
-### macOS
-To run on macOS:
-1. **Prerequisites**: Ensure you have Java 21 or later installed.
-2. **Build and Run**:
-   - Clone the repository.
-   - Run `./mvnw javafx:run` to run the application directly.
-   - To build a native app image: `./mvnw package -Ddist=mac` (requires building on macOS).
+- **Windows:** Install `deckmaker-<version>.exe`.
+- **Linux:** Install the `.deb` package.
+- **macOS:** Install the `.pkg` package.
 
-### Run the JAR Directly (All OS, Java Required)
-- If you have Java 21 or later installed, you can run the packaged JAR directly.
-- From the project root, run:
-  - `java -jar target/deckmaker-0.2.1-SNAPSHOT.jar`
+Windows installers use a stable upgrade ID, so future DeckMaker installers can upgrade the existing installation in place.
+
+## Build From Source
+
+You need Java 21 or later and Maven.
+
+Run the app directly during development:
+
+```sh
+mvn javafx:run
+```
+
+Build the runnable JAR:
+
+```sh
+mvn clean package
+```
+
+Build a native installer for the current platform:
+
+```sh
+mvn clean package -Ddist=win
+mvn clean package -Ddist=linux
+mvn clean package -Ddist=mac
+```
+
+Installer output is written to:
+
+- `target/dist-win/` for the Windows `.exe` installer.
+- `target/dist-linux/` for the Linux `.deb` package.
+- `target/dist-mac/` for the macOS `.pkg` package.
+
+Native installers must be built on their target operating system because they use `jpackage`.
+
+### Run the JAR Directly
+
+If you have Java 21 or later installed, you can run the packaged JAR directly:
+
+```sh
+java -jar target/deckmaker-0.2.1-SNAPSHOT.jar
+```
 
 ## Documentation
 

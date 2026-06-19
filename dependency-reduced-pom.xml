@@ -141,27 +141,27 @@
                     <argument>--name</argument>
                     <argument>deckmaker</argument>
                     <argument>--app-version</argument>
-                    <argument>${jpackage.app.version}</argument>
+                    <argument>0.2.1</argument>
                     <argument>--vendor</argument>
-                    <argument>${jpackage.vendor}</argument>
+                    <argument>CoreTension</argument>
                     <argument>--description</argument>
-                    <argument>${jpackage.description}</argument>
+                    <argument>Visual card deck editor for reusable CSV-driven templates</argument>
                     <argument>--input</argument>
-                    <argument>${project.build.directory}/dist-input</argument>
+                    <argument>C:\Users\jason\git\cardmaker\target/dist-input</argument>
                     <argument>--main-jar</argument>
-                    <argument>${project.build.finalName}.jar</argument>
+                    <argument>deckmaker-0.2.1-SNAPSHOT.jar</argument>
                     <argument>--main-class</argument>
                     <argument>io.github.coretension.deckmaker.app.Launcher</argument>
                     <argument>--type</argument>
                     <argument>exe</argument>
                     <argument>--icon</argument>
-                    <argument>${project.basedir}/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.ico</argument>
+                    <argument>C:\Users\jason\git\cardmaker/src/main/resources/io/github/coretension/deckmaker/icons/app-icon.ico</argument>
                     <argument>--win-upgrade-uuid</argument>
-                    <argument>${jpackage.win.upgrade.uuid}</argument>
+                    <argument>3f2ec4a4-75fc-4d78-bc24-6c6b8dd15d17</argument>
                     <argument>--win-menu</argument>
                     <argument>--win-shortcut</argument>
                     <argument>--dest</argument>
-                    <argument>${project.build.directory}/dist-win</argument>
+                    <argument>C:\Users\jason\git\cardmaker\target/dist-win</argument>
                   </arguments>
                 </configuration>
               </execution>

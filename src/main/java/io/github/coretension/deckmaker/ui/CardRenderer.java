@@ -486,10 +486,12 @@ final class CardRenderer {
                     alpha);
 
             StringBuilder style = new StringBuilder("-fx-background-color: " + alphaColor + "; ");
-            if (!previewMode && !forFinalDesign) {
-                style.append("-fx-border-color: #888888; ");
+            if (!forFinalDesign) {
                 style.append("-fx-border-style: dashed; ");
                 style.append("-fx-border-width: 1; ");
+                style.append(previewMode
+                        ? "-fx-border-color: transparent; "
+                        : "-fx-border-color: #888888; ");
             }
             pane.setStyle(style.toString());
         } catch (Exception e) {
