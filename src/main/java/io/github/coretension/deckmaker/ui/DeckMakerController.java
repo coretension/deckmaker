@@ -2050,8 +2050,8 @@ public class DeckMakerController {
     private void loadCsvFile(File file) {
         try {
             DataMerger.CsvResult result = dataMerger.loadCsv(file.getAbsolutePath());
-            csvData = result.records;
-            csvHeaders = result.headers;
+            csvData = new ArrayList<>(result.records);
+            csvHeaders = new ArrayList<>(result.headers);
             currentTemplate.setCsvPath(file.getAbsolutePath());
             lastCsvModificationTime = file.lastModified();
             if (!csvData.isEmpty()) {
@@ -2680,15 +2680,100 @@ public class DeckMakerController {
         }
     }
 
+    private TableColumn<Map<String, String>, String> createDataColumn(String header) {
+        TableColumn<Map<String, String>, String> column = new TableColumn<>(header);
+        column.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getOrDefault(header, "")));
+        column.setCellFactory(tc -> new TextAreaTableCell<>());
+        column.setOnEditCommit(t -> {
+            t.getTableView().getItems().get(t.getTablePosition().getRow()).put(header, t.getNewValue());
+            csvData = new ArrayList<>(t.getTableView().getItems());
+            renderTemplate();
+            t.getTableView().refresh();
+        });
+        return column;
+    }
+
+    private Map<String, String> createEmptyCsvRecord() {
+        Map<String, String> record = new HashMap<>();
+        for (String header : csvHeaders) {
+            record.put(header, "");
+        }
+        return record;
+    }
+
+    private Optional<String> promptForNewCsvHeader() {
+        String defaultName = nextCsvHeaderName();
+        TextInputDialog dialog = new TextInputDialog(defaultName);
+        dialog.setTitle("Add Column");
+        dialog.setHeaderText("Add a new CSV column");
+        dialog.setContentText("Column name:");
+        if (dataViewerStage != null) {
+            dialog.initOwner(dataViewerStage);
+        }
+
+        return dialog.showAndWait()
+                .map(String::trim)
+                .filter(name -> {
+                    if (name.isEmpty()) {
+                        showDataViewerAlert(Alert.AlertType.ERROR, "Column name cannot be blank.");
+                        return false;
+                    }
+                    if (csvHeaders.contains(name)) {
+                        showDataViewerAlert(Alert.AlertType.ERROR, "A column named \"" + name + "\" already exists.");
+                        return false;
+                    }
+                    return true;
+                });
+    }
+
+    private String nextCsvHeaderName() {
+        int index = csvHeaders.size() + 1;
+        String name;
+        do {
+            name = "Column " + index++;
+        } while (csvHeaders.contains(name));
+        return name;
+    }
+
+    private void showDataViewerAlert(Alert.AlertType type, String message) {
+        Alert alert = new Alert(type, message);
+        if (dataViewerStage != null) {
+            alert.initOwner(dataViewerStage);
+        }
+        alert.show();
+    }
+
+    private boolean promptToCreateInMemoryCsvData() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("CSV Data Viewer");
+        alert.setHeaderText("No CSV data is loaded.");
+        alert.setContentText("Create a new in-memory data sheet? You can add rows and columns now, then use Save to File when you are ready to keep it.");
+        ButtonType createButton = new ButtonType("Create Data Sheet", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(createButton, ButtonType.CANCEL);
+        if (propertiesPane.getScene() != null) {
+            alert.initOwner(propertiesPane.getScene().getWindow());
+        }
+
+        return alert.showAndWait().filter(createButton::equals).isPresent();
+    }
+
+    private void createInMemoryCsvData() {
+        csvHeaders = new ArrayList<>(List.of("Column 1"));
+        csvData = new ArrayList<>(List.of(createEmptyCsvRecord()));
+        currentRecordIndex = 0;
+        currentTemplate.setCsvPath(null);
+        updateRecordLabel();
+        updateTitleAndStatus("Created unsaved in-memory data sheet");
+        renderTemplate();
+    }
+
     @FXML
     void handleViewData(ActionEvent event) {
-        if (csvData.isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("CSV Data Viewer");
-            alert.setHeaderText(null);
-            alert.setContentText("No CSV data loaded. Please load a CSV file first via File -> Load CSV.");
-            alert.show();
-            return;
+        if (csvData.isEmpty() && csvHeaders.isEmpty()) {
+            if (!promptToCreateInMemoryCsvData()) {
+                return;
+            }
+            createInMemoryCsvData();
         }
 
         if (dataViewerStage != null && dataViewerStage.isShowing()) {
@@ -2705,22 +2790,15 @@ public class DeckMakerController {
         Label headerLabel = new Label("Available Columns for Merge: " +
                 String.join(", ", csvHeaders.stream().map(h -> "{{" + h + "}}").toList()));
         headerLabel.setWrapText(true);
+        Runnable updateHeaderLabel = () -> headerLabel.setText("Available Columns for Merge: " +
+                String.join(", ", csvHeaders.stream().map(h -> "{{" + h + "}}").toList()));
 
         TableView<Map<String, String>> tableView = new TableView<>();
         tableView.setEditable(true);
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         for (String header : csvHeaders) {
-            TableColumn<Map<String, String>, String> column = new TableColumn<>(header);
-            column.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(header)));
-            column.setCellFactory(tc -> new TextAreaTableCell<>());
-            column.setOnEditCommit(t -> {
-                t.getTableView().getItems().get(t.getTablePosition().getRow()).put(header, t.getNewValue());
-                csvData = new ArrayList<>(t.getTableView().getItems());
-                renderTemplate(); // Update canvas immediately
-                t.getTableView().refresh();
-            });
-            tableView.getColumns().add(column);
+            tableView.getColumns().add(createDataColumn(header));
         }
 
         ObservableList<Map<String, String>> data = FXCollections.observableArrayList(csvData);
@@ -2738,6 +2816,42 @@ public class DeckMakerController {
                 }
             }
         });
+
+        HBox editBox = new HBox(10);
+        editBox.setAlignment(Pos.CENTER_LEFT);
+        Button addRowButton = new Button("Add Row");
+        addRowButton.setTooltip(new Tooltip("Add a blank data row"));
+        Button addColumnButton = new Button("Add Column");
+        addColumnButton.setTooltip(new Tooltip("Add a new merge column"));
+
+        addRowButton.setOnAction(e -> {
+            Map<String, String> record = createEmptyCsvRecord();
+            data.add(record);
+            csvData = new ArrayList<>(data);
+            currentRecordIndex = data.size() - 1;
+            tableView.getSelectionModel().selectLast();
+            tableView.scrollTo(record);
+            updateRecordLabel();
+            updateTitleAndStatus();
+            renderTemplate();
+        });
+
+        addColumnButton.setOnAction(e -> {
+            Optional<String> result = promptForNewCsvHeader();
+            result.ifPresent(header -> {
+                csvHeaders.add(header);
+                for (Map<String, String> record : data) {
+                    record.put(header, "");
+                }
+                tableView.getColumns().add(createDataColumn(header));
+                csvData = new ArrayList<>(data);
+                updateHeaderLabel.run();
+                updateTitleAndStatus();
+                renderTemplate();
+            });
+        });
+
+        editBox.getChildren().addAll(addRowButton, addColumnButton);
 
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
@@ -2764,7 +2878,8 @@ public class DeckMakerController {
                 fileChooser.setTitle("Save Data As");
                 fileChooser.getExtensionFilters().addAll(
                         new FileChooser.ExtensionFilter("CSV Files", "*.csv"),
-                        new FileChooser.ExtensionFilter("ODS Files", "*.ods")
+                        new FileChooser.ExtensionFilter("ODS Files", "*.ods"),
+                        new FileChooser.ExtensionFilter("Excel Files", "*.xlsx")
                 );
                 File file = fileChooser.showSaveDialog(dataViewerStage);
                 if (file != null) {
@@ -2784,7 +2899,7 @@ public class DeckMakerController {
 
         buttonBox.getChildren().addAll(saveButton, closeButton);
 
-        root.getChildren().addAll(headerLabel, tableView, buttonBox);
+        root.getChildren().addAll(headerLabel, editBox, tableView, buttonBox);
 
         Scene scene = new Scene(root, 800, 600);
         dataViewerStage.setScene(scene);

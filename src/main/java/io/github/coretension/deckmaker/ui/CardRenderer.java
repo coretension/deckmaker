@@ -95,7 +95,7 @@ final class CardRenderer {
             } catch (IllegalArgumentException ex) {
                 bleedGuideColor = Color.RED;
             }
-            double alpha = Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()));
+            double alpha = Math.clamp(settings.getBleedGuideAlpha(), 0.0, 1.0);
             bleedGuide.setStroke(new Color(
                     bleedGuideColor.getRed(),
                     bleedGuideColor.getGreen(),
@@ -126,49 +126,52 @@ final class CardRenderer {
                 continue;
             }
 
-            if (element instanceof ConditionElement condition) {
-                if (dataMerger.evaluateCondition(condition.getCondition(), currentRecord)) {
-                    renderElements(condition.getChildren(), targetPane, currentRecord, currentFont,
+            switch (element) {
+                case ConditionElement condition -> {
+                    if (dataMerger.evaluateCondition(condition.getCondition(), currentRecord)) {
+                        renderElements(condition.getChildren(), targetPane, currentRecord, currentFont,
                             containerLayout, containerAlignment, forFinalDesign, isLocked);
+                    }
                 }
-            } else if (element instanceof FontElement fontElement) {
-                currentFont = fontElement;
-            } else if (element instanceof IconElement iconElement && containerLayout != ContainerElement.LayoutType.POSITIONAL) {
-                for (Node node : createIconNodes(iconElement, currentRecord)) {
-                    targetPane.getChildren().add(node);
-                    if (!forFinalDesign) {
-                        if (isLocked || editHooks == null) {
-                            node.setMouseTransparent(true);
-                        } else {
-                            editHooks.makeDraggable(node, iconElement);
+                case FontElement fontElement -> currentFont = fontElement;
+                case IconElement iconElement when containerLayout != ContainerElement.LayoutType.POSITIONAL -> {
+                    for (Node node : createIconNodes(iconElement, currentRecord)) {
+                        targetPane.getChildren().add(node);
+                        if (!forFinalDesign) {
+                            if (isLocked || editHooks == null) {
+                                node.setMouseTransparent(true);
+                            } else {
+                                editHooks.makeDraggable(node, iconElement);
+                            }
                         }
+                        node.getProperties().put("cardElement", iconElement);
                     }
-                    node.getProperties().put("cardElement", iconElement);
                 }
-            } else {
-                Node node = createNodeForElement(element, currentRecord, currentFont,
+                default -> {
+                    Node node = createNodeForElement(element, currentRecord, currentFont,
                         containerLayout, containerAlignment, forFinalDesign, isLocked, targetPane);
-                if (node == null) {
-                    continue;
-                }
-
-                targetPane.getChildren().add(node);
-                if (element instanceof ParentCardElement parent && node instanceof Pane childPane) {
-                    ContainerElement.LayoutType childLayout = ContainerElement.LayoutType.POSITIONAL;
-                    ContainerElement.Alignment childAlign = ContainerElement.Alignment.LEFT;
-                    boolean nextLocked = isLocked;
-
-                    if (parent instanceof ContainerElement container) {
-                        childLayout = container.getLayoutType();
-                        childAlign = container.getAlignment();
-                        nextLocked |= container.isLocked();
+                    if (node == null) {
+                        continue;
                     }
 
-                    renderElements(parent.getChildren(), childPane, currentRecord, currentFont,
+                    targetPane.getChildren().add(node);
+                    if (element instanceof ParentCardElement parent && node instanceof Pane childPane) {
+                        ContainerElement.LayoutType childLayout = ContainerElement.LayoutType.POSITIONAL;
+                        ContainerElement.Alignment childAlign = ContainerElement.Alignment.LEFT;
+                        boolean nextLocked = isLocked;
+
+                        if (parent instanceof ContainerElement container) {
+                            childLayout = container.getLayoutType();
+                            childAlign = container.getAlignment();
+                            nextLocked |= container.isLocked();
+                        }
+
+                        renderElements(parent.getChildren(), childPane, currentRecord, currentFont,
                             childLayout, childAlign, forFinalDesign, nextLocked);
-                }
-                if (node instanceof Pane pane && editHooks != null) {
-                    editHooks.ensureResizeHandleOnTop(pane);
+                    }
+                    if (node instanceof Pane pane && editHooks != null) {
+                        editHooks.ensureResizeHandleOnTop(pane);
+                    }
                 }
             }
         }
