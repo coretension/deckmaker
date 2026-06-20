@@ -234,7 +234,7 @@ final class CardRenderer {
                                       Pane parentPane) {
         Node node = switch (element) {
             case TextElement textElement -> createTextNode(textElement, currentRecord, fontConfig, parentAlignment, parentPane);
-            case ImageElement imageElement -> createImageNode(imageElement, currentRecord);
+            case ImageElement imageElement -> createImageNode(imageElement, currentRecord, forFinalDesign);
             case ContainerElement containerElement -> createContainerNode(containerElement, forFinalDesign);
             case IconElement iconElement -> createIconFlowPane(iconElement, currentRecord, parentAlignment);
             default -> null;
@@ -300,7 +300,7 @@ final class CardRenderer {
         return resolvedFont;
     }
 
-    private Node createImageNode(ImageElement element, Map<String, String> currentRecord) {
+    private Node createImageNode(ImageElement element, Map<String, String> currentRecord, boolean forFinalDesign) {
         ImageView imageView = new ImageView();
         imageView.getStyleClass().add("image-element");
 
@@ -352,10 +352,28 @@ final class CardRenderer {
         pane.prefWidthProperty().bind(imageView.fitWidthProperty());
         pane.prefHeightProperty().bind(imageView.fitHeightProperty());
 
+        if (!forFinalDesign && !previewMode) {
+            javafx.scene.shape.Rectangle outline = createImageOutline();
+            outline.widthProperty().bind(pane.widthProperty());
+            outline.heightProperty().bind(pane.heightProperty());
+            pane.getChildren().add(outline);
+        }
+
         if (element.isAllowOverflow()) {
             pane.setManaged(false);
         }
         return pane;
+    }
+
+    private javafx.scene.shape.Rectangle createImageOutline() {
+        javafx.scene.shape.Rectangle outline = new javafx.scene.shape.Rectangle();
+        outline.setFill(Color.TRANSPARENT);
+        outline.setStroke(Color.web("#888888"));
+        outline.setStrokeWidth(1.0);
+        outline.getStrokeDashArray().setAll(4.0, 4.0);
+        outline.setMouseTransparent(true);
+        outline.setManaged(false);
+        return outline;
     }
 
     private Pane createContainerNode(ContainerElement element, boolean forFinalDesign) {
@@ -408,7 +426,7 @@ final class CardRenderer {
         element.backgroundColorProperty().addListener((obs, old, newValue) -> updatePaneStyle(pane, newValue, element.getAlpha(), forFinalDesign));
         element.alphaProperty().addListener((obs, old, newValue) -> updatePaneStyle(pane, element.getBackgroundColor(), newValue.doubleValue(), forFinalDesign));
 
-        if (!showClippedContent || forFinalDesign) {
+        if ((!showClippedContent || forFinalDesign) && !hasOverflowAllowedImageDescendant(element)) {
             javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle();
             clip.widthProperty().bind(pane.widthProperty());
             clip.heightProperty().bind(pane.heightProperty());
@@ -416,6 +434,18 @@ final class CardRenderer {
         }
         pane.setPickOnBounds(true);
         return pane;
+    }
+
+    private boolean hasOverflowAllowedImageDescendant(ParentCardElement parent) {
+        for (CardElement child : parent.getChildren()) {
+            if (child instanceof ImageElement image && image.isAllowOverflow()) {
+                return true;
+            }
+            if (child instanceof ParentCardElement childParent && hasOverflowAllowedImageDescendant(childParent)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private FlowPane createIconFlowPane(IconElement element,

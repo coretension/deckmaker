@@ -111,6 +111,24 @@
                     </padding>
                     <Label text="ELEMENTS" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
                     <TreeView fx:id="elementTreeView" VBox.vgrow="ALWAYS" style="-fx-background-insets: 0;"/>
+                    <Separator/>
+                    <Label text="DECK ASSETS" style="-fx-font-weight: bold; -fx-text-fill: #666; -fx-font-size: 0.9em;"/>
+                    <VBox spacing="8">
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label fx:id="fontAssetCountLabel" text="Fonts: 0"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Manage" onAction="#handleManageFontLibrary">
+                                <tooltip><Tooltip text="Manage Font Library"/></tooltip>
+                            </Button>
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label fx:id="iconAssetCountLabel" text="Icons: 0"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Manage" onAction="#handleManageIconLibrary">
+                                <tooltip><Tooltip text="Manage Icon Library"/></tooltip>
+                            </Button>
+                        </HBox>
+                    </VBox>
                 </VBox>
 
                 <StackPane fx:id="displayStack">

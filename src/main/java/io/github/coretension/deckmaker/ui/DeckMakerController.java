@@ -65,6 +65,8 @@ public class DeckMakerController {
     @FXML private Label cursorPosLabel;
     @FXML private Label coordinatesLabel;
     @FXML private Label statusLabel;
+    @FXML private Label fontAssetCountLabel;
+    @FXML private Label iconAssetCountLabel;
 
     private final Map<CardElement, ChangeListener<Number>> xListeners = new HashMap<>();
     private final Map<CardElement, ChangeListener<Number>> yListeners = new HashMap<>();
@@ -107,6 +109,7 @@ public class DeckMakerController {
         applySavedPanelDividerPositions();
         setupPanelDividerPersistence();
         setupTemplateListeners();
+        updateDeckAssetCounts();
         updateCanvasSize();
         updateSizeLabel();
         setupZoomListeners();
@@ -621,14 +624,35 @@ public class DeckMakerController {
 
     private void setupTemplateListeners() {
         rebuildTree();
+        updateDeckAssetCounts();
         currentTemplate.getElements().addListener((ListChangeListener<CardElement>) c -> {
             saveExpandedState(elementTreeView.getRoot());
             rebuildTree();
             renderTemplate();
             markTemplateEdited();
         });
-        currentTemplate.getFontLibrary().fontsProperty().addListener((javafx.collections.MapChangeListener<String, FontElement>) change -> markTemplateEdited());
-        currentTemplate.getIconLibrary().mappingsProperty().addListener((javafx.collections.MapChangeListener<String, Map<String, String>>) change -> markTemplateEdited());
+        currentTemplate.getFontLibrary().fontsProperty().addListener((javafx.collections.MapChangeListener<String, FontElement>) change -> {
+            updateDeckAssetCounts();
+            markTemplateEdited();
+        });
+        currentTemplate.getIconLibrary().mappingsProperty().addListener((javafx.collections.MapChangeListener<String, Map<String, String>>) change -> {
+            updateDeckAssetCounts();
+            markTemplateEdited();
+        });
+    }
+
+    private void updateDeckAssetCounts() {
+        if (fontAssetCountLabel != null) {
+            int fontCount = currentTemplate.getFontLibrary().getFonts().size();
+            fontAssetCountLabel.setText("Fonts: " + fontCount);
+        }
+        if (iconAssetCountLabel != null) {
+            int mappingCount = currentTemplate.getIconLibrary().getMappings().size();
+            int iconCount = currentTemplate.getIconLibrary().getMappings().values().stream()
+                    .mapToInt(Map::size)
+                    .sum();
+            iconAssetCountLabel.setText("Icons: " + iconCount + " / Maps: " + mappingCount);
+        }
     }
 
     /**
@@ -1006,15 +1030,15 @@ public class DeckMakerController {
             newWidth = Math.max(10, newWidth);
             newHeight = Math.max(10, newHeight);
 
-            // Prevent extending outside card bounds
-            double cardWidth = currentTemplate.getDimension().getWidthPx();
-            double cardHeight = currentTemplate.getDimension().getHeightPx();
+            // Prevent extending outside the relevant parent bounds.
+            double maxWidth = getConstraintWidthForElement(el);
+            double maxHeight = getConstraintHeightForElement(el);
             
-            if (el.getX() + newWidth > cardWidth) {
-                newWidth = cardWidth - el.getX();
+            if (el.getX() + newWidth > maxWidth) {
+                newWidth = Math.max(10, maxWidth - el.getX());
             }
-            if (el.getY() + newHeight > cardHeight) {
-                newHeight = cardHeight - el.getY();
+            if (el.getY() + newHeight > maxHeight) {
+                newHeight = Math.max(10, maxHeight - el.getY());
             }
 
             if (lockAspectRatioProperty.get()) {
@@ -1022,15 +1046,15 @@ public class DeckMakerController {
                 if (Math.abs(deltaX) > Math.abs(deltaY)) {
                     newHeight = newWidth / ratio;
                     // Re-check bounds after aspect ratio adjustment
-                    if (el.getY() + newHeight > cardHeight) {
-                        newHeight = cardHeight - el.getY();
+                    if (el.getY() + newHeight > maxHeight) {
+                        newHeight = Math.max(10, maxHeight - el.getY());
                         newWidth = newHeight * ratio;
                     }
                 } else {
                     newWidth = newHeight * ratio;
                     // Re-check bounds after aspect ratio adjustment
-                    if (el.getX() + newWidth > cardWidth) {
-                        newWidth = cardWidth - el.getX();
+                    if (el.getX() + newWidth > maxWidth) {
+                        newWidth = Math.max(10, maxWidth - el.getX());
                         newHeight = newWidth / ratio;
                     }
                 }
@@ -1181,17 +1205,48 @@ public class DeckMakerController {
             return new double[]{x, y};
         }
 
+        double maxWidth = getConstraintWidthForElement(element, cardWidth);
+        double maxHeight = getConstraintHeightForElement(element, cardHeight);
+
         double constrainedX = Math.max(0, x);
-        if (constrainedX + width > cardWidth) {
-            constrainedX = Math.max(0, cardWidth - width);
+        if (constrainedX + width > maxWidth) {
+            constrainedX = Math.max(0, maxWidth - width);
         }
 
         double constrainedY = Math.max(0, y);
-        if (constrainedY + height > cardHeight) {
-            constrainedY = Math.max(0, cardHeight - height);
+        if (constrainedY + height > maxHeight) {
+            constrainedY = Math.max(0, maxHeight - height);
         }
 
         return new double[]{constrainedX, constrainedY};
+    }
+
+    private double getConstraintWidthForElement(CardElement element) {
+        return getConstraintWidthForElement(element, currentTemplate.getDimension().getWidthPx());
+    }
+
+    private double getConstraintHeightForElement(CardElement element) {
+        return getConstraintHeightForElement(element, currentTemplate.getDimension().getHeightPx());
+    }
+
+    private double getConstraintWidthForElement(CardElement element, double defaultWidth) {
+        if (element instanceof ImageElement image && image.isAllowOverflow()) {
+            return defaultWidth;
+        }
+        if (element instanceof ImageElement && findParentElement(element) instanceof ContainerElement parent) {
+            return parent.getWidth();
+        }
+        return defaultWidth;
+    }
+
+    private double getConstraintHeightForElement(CardElement element, double defaultHeight) {
+        if (element instanceof ImageElement image && image.isAllowOverflow()) {
+            return defaultHeight;
+        }
+        if (element instanceof ImageElement && findParentElement(element) instanceof ContainerElement parent) {
+            return parent.getHeight();
+        }
+        return defaultHeight;
     }
 
     private boolean hasMovementDelta(CardElement element, double newX, double newY) {
@@ -1388,6 +1443,7 @@ public class DeckMakerController {
         axisTargets.add(0.0);
         axisTargets.add(cardSize / 2.0);
         axisTargets.add(cardSize);
+        addGridSnapTargets(axisTargets, cardSize);
 
         for (ElementBounds bounds : targets) {
             if (isX) {
@@ -1414,6 +1470,17 @@ public class DeckMakerController {
         }
 
         return new SnapResult(bestAdjustedPosition, guide, isX);
+    }
+
+    private void addGridSnapTargets(List<Double> axisTargets, double cardSize) {
+        if (!state.isShowGrid() || state.isPreviewMode()) {
+            return;
+        }
+
+        double spacingPx = GRID_SPACING_MM * (CardDimension.getDpi() / 25.4);
+        for (double position = spacingPx; position < cardSize; position += spacingPx) {
+            axisTargets.add(position);
+        }
     }
 
     private void showSnapGuides(SnapResult xSnap, SnapResult ySnap) {
@@ -1992,6 +2059,7 @@ public class DeckMakerController {
         removeBtn.setOnAction(e -> {
             iconMap.remove(charStr);
             container.getChildren().remove(row);
+            updateDeckAssetCounts();
             renderTemplate();
             markTemplateEdited();
         });
@@ -2170,6 +2238,7 @@ public class DeckMakerController {
                             iconMap.put(key, "");
                             addMappingRow(iconMap, key, rowsContainer);
                             newKeyField.clear();
+                            updateDeckAssetCounts();
                             renderTemplate();
                             updatePropertiesPane(getSelectedElement());
                             markTemplateEdited();
@@ -2726,6 +2795,37 @@ public class DeckMakerController {
                 });
     }
 
+    private Optional<String> promptForCsvHeaderToDelete() {
+        if (csvHeaders.isEmpty()) {
+            showDataViewerAlert(Alert.AlertType.INFORMATION, "There are no columns to delete.");
+            return Optional.empty();
+        }
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(csvHeaders.getFirst(), csvHeaders);
+        dialog.setTitle("Delete Column");
+        dialog.setHeaderText("Choose a column to delete");
+        dialog.setContentText("Column:");
+        if (dataViewerStage != null) {
+            dialog.initOwner(dataViewerStage);
+        }
+
+        return dialog.showAndWait().filter(this::confirmDeleteCsvHeader);
+    }
+
+    private boolean confirmDeleteCsvHeader(String header) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Column");
+        alert.setHeaderText("Delete \"" + header + "\"?");
+        alert.setContentText("This removes the column and its values from every row in the data sheet.");
+        ButtonType deleteButton = new ButtonType("Delete Column", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(deleteButton, ButtonType.CANCEL);
+        if (dataViewerStage != null) {
+            alert.initOwner(dataViewerStage);
+        }
+
+        return alert.showAndWait().filter(deleteButton::equals).isPresent();
+    }
+
     private String nextCsvHeaderName() {
         int index = csvHeaders.size() + 1;
         String name;
@@ -2823,6 +2923,8 @@ public class DeckMakerController {
         addRowButton.setTooltip(new Tooltip("Add a blank data row"));
         Button addColumnButton = new Button("Add Column");
         addColumnButton.setTooltip(new Tooltip("Add a new merge column"));
+        Button deleteColumnButton = new Button("Delete Column");
+        deleteColumnButton.setTooltip(new Tooltip("Remove a merge column from every row"));
 
         addRowButton.setOnAction(e -> {
             Map<String, String> record = createEmptyCsvRecord();
@@ -2851,7 +2953,28 @@ public class DeckMakerController {
             });
         });
 
-        editBox.getChildren().addAll(addRowButton, addColumnButton);
+        deleteColumnButton.setOnAction(e -> {
+            Optional<String> result = promptForCsvHeaderToDelete();
+            result.ifPresent(header -> {
+                csvHeaders.remove(header);
+                for (Map<String, String> record : data) {
+                    record.remove(header);
+                }
+                for (int i = 0; i < tableView.getColumns().size(); i++) {
+                    if (header.equals(tableView.getColumns().get(i).getText())) {
+                        tableView.getColumns().remove(i);
+                        break;
+                    }
+                }
+                csvData = new ArrayList<>(data);
+                updateHeaderLabel.run();
+                updateTitleAndStatus();
+                renderTemplate();
+                tableView.refresh();
+            });
+        });
+
+        editBox.getChildren().addAll(addRowButton, addColumnButton, deleteColumnButton);
 
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
