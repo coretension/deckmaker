@@ -87,24 +87,7 @@ final class CardRenderer {
         if (showBleedGuide && professionalMode) {
             double cardWidthPx = template.getDimension().getWidthMm() * dpi / 25.4;
             double cardHeightPx = template.getDimension().getHeightMm() * dpi / 25.4;
-            javafx.scene.shape.Rectangle bleedGuide = new javafx.scene.shape.Rectangle(bleedPx, bleedPx, cardWidthPx, cardHeightPx);
-            bleedGuide.setFill(Color.TRANSPARENT);
-            Color bleedGuideColor;
-            try {
-                bleedGuideColor = Color.web(settings.getBleedGuideColor());
-            } catch (IllegalArgumentException ex) {
-                bleedGuideColor = Color.RED;
-            }
-            double alpha = Math.clamp(settings.getBleedGuideAlpha(), 0.0, 1.0);
-            bleedGuide.setStroke(new Color(
-                    bleedGuideColor.getRed(),
-                    bleedGuideColor.getGreen(),
-                    bleedGuideColor.getBlue(),
-                    alpha
-            ));
-            bleedGuide.setStrokeWidth(1);
-            bleedGuide.getStrokeDashArray().addAll(5.0, 5.0);
-            root.getChildren().add(bleedGuide);
+            root.getChildren().add(createBleedZoneOverlay(bleedPx, cardWidthPx, cardHeightPx, widthPx, heightPx));
         }
 
         new Scene(root);
@@ -175,6 +158,50 @@ final class CardRenderer {
                 }
             }
         }
+    }
+
+    private Pane createBleedZoneOverlay(double bleedPx, double cardWidth, double cardHeight, double totalWidth, double totalHeight) {
+        Pane overlay = new Pane();
+        overlay.setMouseTransparent(true);
+        overlay.setMinSize(totalWidth, totalHeight);
+        overlay.setPrefSize(totalWidth, totalHeight);
+        overlay.setMaxSize(totalWidth, totalHeight);
+
+        if (bleedPx <= 0) {
+            return overlay;
+        }
+
+        Color fill = createBleedZoneFill();
+        overlay.getChildren().addAll(
+                createBleedZoneBand(0, 0, totalWidth, bleedPx, fill),
+                createBleedZoneBand(0, bleedPx + cardHeight, totalWidth, bleedPx, fill),
+                createBleedZoneBand(0, bleedPx, bleedPx, cardHeight, fill),
+                createBleedZoneBand(bleedPx + cardWidth, bleedPx, bleedPx, cardHeight, fill)
+        );
+        return overlay;
+    }
+
+    private javafx.scene.shape.Rectangle createBleedZoneBand(double x, double y, double width, double height, Color fill) {
+        javafx.scene.shape.Rectangle band = new javafx.scene.shape.Rectangle(x, y, width, height);
+        band.setFill(fill);
+        band.setMouseTransparent(true);
+        return band;
+    }
+
+    private Color createBleedZoneFill() {
+        Color bleedGuideColor;
+        try {
+            bleedGuideColor = Color.web(settings.getBleedGuideColor());
+        } catch (IllegalArgumentException ex) {
+            bleedGuideColor = Color.RED;
+        }
+        double alpha = Math.clamp(settings.getBleedGuideAlpha(), 0.0, 1.0);
+        return new Color(
+                bleedGuideColor.getRed(),
+                bleedGuideColor.getGreen(),
+                bleedGuideColor.getBlue(),
+                alpha
+        );
     }
 
     private List<Node> createIconNodes(IconElement element, Map<String, String> currentRecord) {

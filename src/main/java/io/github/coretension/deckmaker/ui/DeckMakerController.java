@@ -89,7 +89,7 @@ public class DeckMakerController {
     private Stage dataViewerStage;
     private boolean editorShortcutsInstalled = false;
     private static final double SNAP_THRESHOLD_PX = 6.0;
-    private static final double GRID_SPACING_MM = 5.0;
+    private static final double PREFERRED_GRID_SPACING_MM = 5.0;
     private static final double MIN_ZOOM_LEVEL = 0.1;
     private static final double MAX_ZOOM_LEVEL = 8.0;
     private static final int MAX_RECENT_COLORS = 10;
@@ -871,28 +871,13 @@ public class DeckMakerController {
 
         createCardRenderer().renderElements(currentTemplate.getElements(), contentPane, currentRecord, false);
         
-        // Add bleed guide last so it's always visible
+        // Add bleed zone overlay last so the printable bleed margin stays visible.
         if (state.isProfessionalMode() && !state.isPreviewMode()) {
-            javafx.scene.shape.Rectangle bleedGuide = new javafx.scene.shape.Rectangle(bleedPx, bleedPx, 
-                    currentTemplate.getDimension().getWidthPx(), currentTemplate.getDimension().getHeightPx());
-            bleedGuide.setFill(Color.TRANSPARENT);
-            Color bleedGuideColor;
-            try {
-                bleedGuideColor = Color.web(settings.getBleedGuideColor());
-            } catch (IllegalArgumentException ex) {
-                bleedGuideColor = Color.RED;
-            }
-            double alpha = Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()));
-            bleedGuide.setStroke(new Color(
-                    bleedGuideColor.getRed(),
-                    bleedGuideColor.getGreen(),
-                    bleedGuideColor.getBlue(),
-                    alpha
+            cardCanvas.getChildren().add(createBleedZoneOverlay(
+                    bleedPx,
+                    currentTemplate.getDimension().getWidthPx(),
+                    currentTemplate.getDimension().getHeightPx()
             ));
-            bleedGuide.setStrokeWidth(1);
-            bleedGuide.getStrokeDashArray().addAll(5.0, 5.0);
-            bleedGuide.setMouseTransparent(true);
-            cardCanvas.getChildren().add(bleedGuide);
         }
 
         highlightOnCanvas(getSelectedElement());
@@ -1256,7 +1241,6 @@ public class DeckMakerController {
     private Pane createGridOverlay(double bleedPx) {
         double cardWidth = currentTemplate.getDimension().getWidthPx();
         double cardHeight = currentTemplate.getDimension().getHeightPx();
-        double spacingPx = GRID_SPACING_MM * (CardDimension.getDpi() / 25.4);
 
         Pane grid = new Pane();
         grid.setMouseTransparent(true);
@@ -1266,18 +1250,64 @@ public class DeckMakerController {
         grid.setPrefSize(cardWidth, cardHeight);
         grid.setMaxSize(cardWidth, cardHeight);
 
-        for (double x = spacingPx; x < cardWidth; x += spacingPx) {
+        for (double x : getFittedGridPositions(cardWidth)) {
             javafx.scene.shape.Line line = new javafx.scene.shape.Line(x, 0, x, cardHeight);
             styleGridLine(line);
             grid.getChildren().add(line);
         }
-        for (double y = spacingPx; y < cardHeight; y += spacingPx) {
+        for (double y : getFittedGridPositions(cardHeight)) {
             javafx.scene.shape.Line line = new javafx.scene.shape.Line(0, y, cardWidth, y);
             styleGridLine(line);
             grid.getChildren().add(line);
         }
 
         return grid;
+    }
+
+    private Pane createBleedZoneOverlay(double bleedPx, double cardWidth, double cardHeight) {
+        Pane overlay = new Pane();
+        double totalWidth = cardWidth + 2 * bleedPx;
+        double totalHeight = cardHeight + 2 * bleedPx;
+        overlay.setMouseTransparent(true);
+        overlay.setMinSize(totalWidth, totalHeight);
+        overlay.setPrefSize(totalWidth, totalHeight);
+        overlay.setMaxSize(totalWidth, totalHeight);
+
+        if (bleedPx <= 0) {
+            return overlay;
+        }
+
+        Color fill = createBleedZoneFill();
+        overlay.getChildren().addAll(
+                createBleedZoneBand(0, 0, totalWidth, bleedPx, fill),
+                createBleedZoneBand(0, bleedPx + cardHeight, totalWidth, bleedPx, fill),
+                createBleedZoneBand(0, bleedPx, bleedPx, cardHeight, fill),
+                createBleedZoneBand(bleedPx + cardWidth, bleedPx, bleedPx, cardHeight, fill)
+        );
+        return overlay;
+    }
+
+    private javafx.scene.shape.Rectangle createBleedZoneBand(double x, double y, double width, double height, Color fill) {
+        javafx.scene.shape.Rectangle band = new javafx.scene.shape.Rectangle(x, y, width, height);
+        band.setFill(fill);
+        band.setMouseTransparent(true);
+        return band;
+    }
+
+    private Color createBleedZoneFill() {
+        Color bleedGuideColor;
+        try {
+            bleedGuideColor = Color.web(settings.getBleedGuideColor());
+        } catch (IllegalArgumentException ex) {
+            bleedGuideColor = Color.RED;
+        }
+        double alpha = Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()));
+        return new Color(
+                bleedGuideColor.getRed(),
+                bleedGuideColor.getGreen(),
+                bleedGuideColor.getBlue(),
+                alpha
+        );
     }
 
     private void styleGridLine(javafx.scene.shape.Line line) {
@@ -1477,10 +1507,18 @@ public class DeckMakerController {
             return;
         }
 
-        double spacingPx = GRID_SPACING_MM * (CardDimension.getDpi() / 25.4);
-        for (double position = spacingPx; position < cardSize; position += spacingPx) {
-            axisTargets.add(position);
+        axisTargets.addAll(getFittedGridPositions(cardSize));
+    }
+
+    private List<Double> getFittedGridPositions(double cardSize) {
+        double preferredSpacingPx = PREFERRED_GRID_SPACING_MM * (CardDimension.getDpi() / 25.4);
+        int divisions = Math.max(1, (int) Math.round(cardSize / preferredSpacingPx));
+        double fittedSpacingPx = cardSize / divisions;
+        List<Double> positions = new ArrayList<>();
+        for (int i = 1; i < divisions; i++) {
+            positions.add(i * fittedSpacingPx);
         }
+        return positions;
     }
 
     private void showSnapGuides(SnapResult xSnap, SnapResult ySnap) {
@@ -3224,22 +3262,22 @@ public class DeckMakerController {
             initialBleedGuideColor = Color.RED;
         }
         ColorPicker bleedGuideColorPicker = new ColorPicker(initialBleedGuideColor);
-        bleedGuideColorPicker.setTooltip(new Tooltip("Bleed guide outline color"));
+        bleedGuideColorPicker.setTooltip(new Tooltip("Bleed zone fill color"));
 
-        Spinner<Double> bleedGuideAlphaSpinner = new Spinner<>(0.0, 1.0,
-                Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha())), 0.05);
+        int initialBleedTransparency = (int) Math.round((1.0 - Math.max(0.0, Math.min(1.0, settings.getBleedGuideAlpha()))) * 100.0);
+        Spinner<Integer> bleedGuideAlphaSpinner = new Spinner<>(0, 100, initialBleedTransparency, 5);
         bleedGuideAlphaSpinner.setEditable(true);
         bleedGuideAlphaSpinner.setPrefWidth(100);
-        bleedGuideAlphaSpinner.setTooltip(new Tooltip("Bleed guide outline transparency (0 to 1)"));
+        bleedGuideAlphaSpinner.setTooltip(new Tooltip("Bleed zone transparency percentage (0 = opaque, 100 = transparent)"));
 
         grid.add(new Label("Last Opened/Saved Deck:"), 0, 0);
         grid.add(pathField, 1, 0);
         grid.add(browseButton, 2, 0);
         grid.add(new Label("Card Bleed (mm):"), 0, 1);
         grid.add(bleedField, 1, 1);
-        grid.add(new Label("Bleed Guide Color:"), 0, 2);
+        grid.add(new Label("Bleed Zone Color:"), 0, 2);
         grid.add(bleedGuideColorPicker, 1, 2);
-        grid.add(new Label("Bleed Guide Alpha:"), 0, 3);
+        grid.add(new Label("Bleed Transparency (%):"), 0, 3);
         grid.add(bleedGuideAlphaSpinner, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
@@ -3254,7 +3292,8 @@ public class DeckMakerController {
                     // Ignore or show alert
                 }
                 settings.setBleedGuideColor(toHexColor(bleedGuideColorPicker.getValue()));
-                settings.setBleedGuideAlpha(Math.max(0.0, Math.min(1.0, bleedGuideAlphaSpinner.getValue())));
+                int transparency = Math.max(0, Math.min(100, bleedGuideAlphaSpinner.getValue()));
+                settings.setBleedGuideAlpha(1.0 - (transparency / 100.0));
                 return settings;
             }
             return null;
