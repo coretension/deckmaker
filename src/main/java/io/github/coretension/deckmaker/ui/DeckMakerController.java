@@ -2900,6 +2900,15 @@ public class DeckMakerController {
         for (String header : csvHeaders) {
             tableView.getColumns().add(createDataColumn(header));
         }
+        tableView.getColumns().addListener((ListChangeListener<TableColumn<Map<String, String>, ?>>) change -> {
+            List<String> reorderedHeaders = new ArrayList<>();
+            for (TableColumn<Map<String, String>, ?> column : tableView.getColumns()) {
+                reorderedHeaders.add(column.getText());
+            }
+            csvHeaders = reorderedHeaders;
+            updateHeaderLabel.run();
+            updateTitleAndStatus();
+        });
 
         ObservableList<Map<String, String>> data = FXCollections.observableArrayList(csvData);
         tableView.setItems(data);
